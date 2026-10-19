@@ -1,0 +1,398 @@
+---
+import Icono from '@/components/Icono.astro';
+import type { ElementoVisor } from './datos';
+import { pedidos } from '@/services/pedidos';
+
+interface Props {
+  elementos: ElementoVisor[];
+  urlSitio: string;
+}
+
+const { elementos, urlSitio } = Astro.props;
+const datos = Object.fromEntries(elementos.map((e) => [e.clave, e]));
+---
+
+<dialog class="visor" id="visor" aria-labelledby="visor-titulo" aria-describedby="visor-contador" data-url-sitio={urlSitio}>
+  <div class="visor__marco">
+    <div class="visor__escenario" data-escenario>
+      <figure class="visor__figura" data-figura>
+        <img class="visor__imagen" data-imagen alt="" sizes="100vw" draggable="false" />
+      </figure>
+
+      <button class="visor__nav visor__nav--anterior" type="button" data-anterior>
+        <Icono nombre="anterior" />
+        <span class="visualmente-oculto">Foto anterior</span>
+      </button>
+      <button class="visor__nav visor__nav--siguiente" type="button" data-siguiente>
+        <Icono nombre="siguiente" />
+        <span class="visualmente-oculto">Foto siguiente</span>
+      </button>
+
+      <p class="visor__pista-zoom" data-pista-zoom aria-hidden="true">
+        <span class="solo-tactil">Toca dos veces o pellizca para acercar</span>
+        <span class="solo-cursor">Doble clic para acercar</span>
+      </p>
+    </div>
+
+    <div class="visor__panel">
+      <div class="visor__encabezado">
+        <p class="visor__contador" id="visor-contador" aria-live="polite" data-contador></p>
+        <button class="visor__cerrar" type="button" data-cerrar autofocus>
+          <Icono nombre="cerrar" />
+          <span class="visualmente-oculto">Cerrar</span>
+        </button>
+      </div>
+
+      <div class="visor__info">
+        <h2 class="visor__titulo" id="visor-titulo" data-titulo></h2>
+        <p class="visor__precio" data-precio></p>
+        <fieldset class="cuadritos-color" data-colores>
+          <legend class="visualmente-oculto">Color</legend>
+        </fieldset>
+        <a class="boton boton--whatsapp visor__pedir" href={pedidos.general()} target="_blank" rel="noopener" data-pedir>
+          <Icono nombre="whatsapp" />
+          <span data-pedir-texto>Pedir por WhatsApp</span>
+        </a>
+      </div>
+
+      <ul class="visor__miniaturas" role="list" aria-label="Miniaturas" data-miniaturas></ul>
+    </div>
+  </div>
+</dialog>
+
+<script type="application/json" id="datos-visor" set:html={JSON.stringify(datos)} />
+
+<style>
+  .visor {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--color-tinta);
+    color: var(--color-blanco);
+    overscroll-behavior: contain;
+  }
+
+  .visor::backdrop {
+    background: rgb(23 20 43 / 0.9);
+  }
+
+  .visor[open] {
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .visor[open] {
+      animation: aparecer var(--duracion-media) var(--curva-salida);
+    }
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .visor__marco {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 100%;
+  }
+
+  .visor__escenario {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .visor__figura {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: var(--espacio-4);
+  }
+
+  .visor__imagen {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: var(--radio-sm);
+    transform-origin: 50% 50%;
+    cursor: zoom-in;
+    will-change: transform;
+  }
+
+  .visor__imagen.con-zoom {
+    cursor: grab;
+  }
+
+  .visor__imagen.animando {
+    transition: transform var(--duracion-media) var(--curva-salida);
+  }
+
+  .visor__imagen.cambiando {
+    animation: entrar-foto var(--duracion-media) var(--curva-salida);
+  }
+
+  @keyframes entrar-foto {
+    from {
+      opacity: 0.2;
+    }
+  }
+
+  .visor__nav,
+  .visor__cerrar {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: var(--radio-sm);
+    background: rgb(255 255 255 / 0.12);
+    color: var(--color-blanco);
+    cursor: pointer;
+    transition: background-color var(--duracion-corta);
+  }
+
+  .visor__nav:hover,
+  .visor__cerrar:hover {
+    background: rgb(255 255 255 / 0.24);
+  }
+
+  .visor :global(:focus-visible) {
+    outline-color: var(--color-blanco);
+  }
+
+  .visor__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .visor__nav--anterior {
+    left: var(--espacio-3);
+  }
+
+  .visor__nav--siguiente {
+    right: var(--espacio-3);
+  }
+
+  .visor__nav[hidden] {
+    display: none;
+  }
+
+  .visor__pista-zoom {
+    position: absolute;
+    bottom: var(--espacio-3);
+    left: 50%;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radio-pildora);
+    background: rgb(0 0 0 / 0.45);
+    font-size: var(--texto-xs);
+    white-space: nowrap;
+    transform: translateX(-50%);
+    pointer-events: none;
+    transition: opacity var(--duracion-media);
+  }
+
+  .solo-cursor {
+    display: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .solo-cursor {
+      display: inline;
+    }
+
+    .solo-tactil {
+      display: none;
+    }
+  }
+
+  .visor__pista-zoom.oculta {
+    opacity: 0;
+  }
+
+  .visor__panel {
+    display: grid;
+    gap: var(--espacio-4);
+    padding: var(--espacio-4) var(--margen-lateral) max(var(--espacio-4), env(safe-area-inset-bottom));
+    background: rgb(255 255 255 / 0.04);
+    border-top: 1px solid rgb(255 255 255 / 0.08);
+  }
+
+  .visor__encabezado {
+    position: absolute;
+    top: max(var(--espacio-3), env(safe-area-inset-top));
+    right: var(--espacio-3);
+    left: var(--espacio-3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .visor__encabezado > * {
+    pointer-events: auto;
+  }
+
+  .visor__contador {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radio-pildora);
+    background: rgb(0 0 0 / 0.45);
+    font-size: var(--texto-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .visor__info {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--espacio-2) var(--espacio-4);
+  }
+
+  .visor__titulo {
+    font-size: var(--texto-base);
+  }
+
+  .visor__precio {
+    font-weight: 700;
+    font-size: var(--texto-lg);
+    text-align: right;
+  }
+
+  .visor__precio:empty {
+    display: none;
+  }
+
+  .visor__info .cuadritos-color {
+    grid-column: 1 / -1;
+  }
+
+  .visor__info .cuadritos-color:not(:has(button)) {
+    display: none;
+  }
+
+  .visor :global(.cuadrito-color[aria-pressed='true']) {
+    box-shadow:
+      0 0 0 2px var(--color-tinta),
+      0 0 0 4px var(--color-blanco);
+  }
+
+  .visor__pedir {
+    grid-column: 1 / -1;
+  }
+
+  .visor__pedir[hidden] {
+    display: none;
+  }
+
+  .visor__miniaturas {
+    display: flex;
+    gap: var(--espacio-2);
+    overflow-x: auto;
+    padding: 4px;
+    margin: -4px;
+    scrollbar-width: thin;
+  }
+
+  .visor__miniaturas :global(button) {
+    flex: none;
+    width: 3.5rem;
+    aspect-ratio: 4 / 5;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radio-cuadrito);
+    overflow: hidden;
+    background: rgb(255 255 255 / 0.1);
+    opacity: 0.55;
+    cursor: pointer;
+    transition: opacity var(--duracion-corta);
+  }
+
+  .visor__miniaturas :global(button[aria-current='true']) {
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--color-blanco);
+  }
+
+  .visor__miniaturas :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @media (min-width: 60rem) {
+    .visor__marco {
+      grid-template-columns: minmax(0, 1fr) 22rem;
+      grid-template-rows: 100%;
+    }
+
+    .visor__panel {
+      position: relative;
+      grid-template-rows: auto auto 1fr;
+      align-content: start;
+      padding: var(--espacio-6);
+      border-top: 0;
+      border-left: 1px solid rgb(255 255 255 / 0.08);
+    }
+
+    .visor__encabezado {
+      position: static;
+    }
+
+    .visor__info {
+      gap: var(--espacio-4);
+      padding-top: var(--espacio-4);
+    }
+
+    .visor__titulo {
+      font-size: var(--texto-xl);
+      grid-column: 1 / -1;
+    }
+
+    .visor__precio {
+      text-align: left;
+      grid-column: 1 / -1;
+    }
+
+    .visor__pedir {
+      justify-self: start;
+    }
+
+    .visor__miniaturas {
+      flex-wrap: wrap;
+      align-content: start;
+      overflow: visible;
+    }
+
+    .visor__miniaturas :global(button) {
+      width: 4rem;
+    }
+
+    .visor__nav--anterior {
+      left: var(--espacio-5);
+    }
+
+    .visor__nav--siguiente {
+      right: var(--espacio-5);
+    }
+  }
+</style>
+
+<script>
+  import { iniciarVisor } from '@/scripts/visor';
+  iniciarVisor();
+</script>

@@ -1,0 +1,76 @@
+---
+import { getImage } from 'astro:assets';
+import Base from '@/layouts/Base.astro';
+import Hero from '@/components/Hero.astro';
+import Temporada from '@/components/Temporada.astro';
+import Catalogo from '@/components/catalogo/Catalogo.astro';
+import Galeria from '@/components/Galeria.astro';
+import Proceso from '@/components/Proceso.astro';
+import Beneficios from '@/components/Beneficios.astro';
+import Personaliza from '@/components/Personaliza.astro';
+import Mayoreo from '@/components/Mayoreo.astro';
+import Preguntas from '@/components/Preguntas.astro';
+import Visor from '@/components/visor/Visor.astro';
+import { elementoDeGaleria, elementoDeProducto } from '@/components/visor/datos';
+import { catalogo } from '@/data';
+import { sitio } from '@/config/sitio';
+
+// Toda la información pasa por el repositorio; la página no lee archivos.
+const [productos, colecciones, fotosGaleria] = await Promise.all([
+  catalogo.listarProductos(),
+  catalogo.listarColecciones(),
+  catalogo.listarFotosGaleria(),
+]);
+
+const destacado = productos.find((p) => p.destacado && p.disponible) ?? productos.find((p) => p.disponible) ?? productos[0];
+const urlSitio = new URL(import.meta.env.BASE_URL, Astro.site).href.replace(/\/?$/, '/');
+
+const elementosVisor = await Promise.all([
+  ...productos.map(elementoDeProducto),
+  ...(fotosGaleria.length ? [elementoDeGaleria(fotosGaleria)] : []),
+]);
+
+// Datos estructurados de cada producto para buscadores.
+const productosJsonLd = await Promise.all(
+  productos.map(async (p) => {
+    const imagenes = await Promise.all(
+      p.fotos.slice(0, 3).map(async (f) => new URL((await getImage({ src: f.src, width: 1200, format: 'jpg' })).src, Astro.site).href),
+    );
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: p.nombre,
+      description: p.descripcion || `Aretes ${p.nombre} impresos en 3D por ${sitio.nombre}.`,
+      image: imagenes,
+      url: `${urlSitio}#producto/${p.slug}`,
+      brand: { '@type': 'Brand', name: sitio.nombre },
+      material: 'PLA',
+      ...(p.colores.length && { color: p.colores.map((c) => c.nombre).join(', ') }),
+      ...(p.precio !== undefined && {
+        offers: {
+          '@type': 'Offer',
+          price: p.precio.toFixed(2),
+          priceCurrency: 'MXN',
+          availability: p.disponible ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+          url: `${urlSitio}#producto/${p.slug}`,
+        },
+      }),
+    };
+  }),
+);
+
+const coleccionTemporadaConProductos = colecciones.some((c) => c.id === sitio.temporada.coleccion);
+---
+
+<Base jsonLd={productosJsonLd}>
+  <Hero destacado={destacado} />
+  <Temporada hayProductos={coleccionTemporadaConProductos} />
+  <Catalogo productos={productos} colecciones={colecciones} urlSitio={urlSitio} />
+  <Galeria fotos={fotosGaleria} />
+  <Proceso />
+  <Beneficios />
+  <Personaliza />
+  <Mayoreo />
+  <Preguntas />
+  <Visor elementos={elementosVisor} urlSitio={urlSitio} />
+</Base>

@@ -1,0 +1,88 @@
+---
+import { Font } from 'astro:assets';
+import '@/styles/global.css';
+import { sitio } from '@/config/sitio';
+import Encabezado from '@/components/Encabezado.astro';
+import Pie from '@/components/Pie.astro';
+import BotonFlotante from '@/components/BotonFlotante.astro';
+
+interface Props {
+  titulo?: string;
+  descripcion?: string;
+  /** Datos estructurados adicionales (JSON-LD) de la página. */
+  jsonLd?: object[];
+}
+
+const {
+  titulo = `${sitio.nombre} · Aretes mexicanos impresos en 3D`,
+  descripcion = sitio.descripcion,
+  jsonLd = [],
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const urlCanonica = new URL(Astro.url.pathname, Astro.site);
+const urlInicio = new URL(base, Astro.site).href;
+const urlOg = new URL(`${base}og.png`, Astro.site).href;
+
+const organizacion = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: sitio.nombre,
+  alternateName: sitio.nombreLeido,
+  url: urlInicio,
+  logo: new URL(`${base}logo.png`, Astro.site).href,
+  description: sitio.descripcion,
+  founder: { '@type': 'Person', name: sitio.creador },
+  sameAs: Object.values(sitio.redes).map((r) => r.url),
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'sales',
+    url: `https://wa.me/${sitio.whatsapp.numero}`,
+    availableLanguage: 'es-MX',
+  },
+};
+---
+
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titulo}</title>
+    <meta name="description" content={descripcion} />
+    <link rel="canonical" href={urlCanonica} />
+    <meta name="theme-color" content="#3B2A9B" />
+    <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={`${base}apple-touch-icon.png`} />
+    <link rel="sitemap" href={`${base}sitemap-index.xml`} />
+
+    <Font cssVariable="--fuente-titulos" preload={[{ weight: '700' }]} />
+    <Font cssVariable="--fuente-texto" preload={[{ weight: '400' }]} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:site_name" content={sitio.nombre} />
+    <meta property="og:title" content={titulo} />
+    <meta property="og:description" content={descripcion} />
+    <meta property="og:url" content={urlCanonica} />
+    <meta property="og:image" content={urlOg} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Logotipo de aalcuadrado: una A hecha de cuadritos morados" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={titulo} />
+    <meta name="twitter:description" content={descripcion} />
+    <meta name="twitter:image" content={urlOg} />
+
+    <script type="application/ld+json" set:html={JSON.stringify([organizacion, ...jsonLd])} />
+  </head>
+  <body>
+    <a class="salto" href="#contenido">Saltar al contenido</a>
+    <Encabezado />
+    <main id="contenido">
+      <slot />
+    </main>
+    <Pie />
+    <BotonFlotante />
+  </body>
+</html>

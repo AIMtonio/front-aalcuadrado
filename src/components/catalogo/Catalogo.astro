@@ -1,0 +1,185 @@
+---
+import type { ImageMetadata } from 'astro';
+import type { Coleccion, Producto } from '@/domain/catalogo';
+import TarjetaProducto from './TarjetaProducto.astro';
+
+interface Props {
+  productos: Producto<ImageMetadata>[];
+  colecciones: Coleccion[];
+  urlSitio: string;
+}
+
+const { productos, colecciones, urlSitio } = Astro.props;
+---
+
+<section class="seccion" id="catalogo" aria-labelledby="catalogo-titulo">
+  <div class="contenedor">
+    <div class="catalogo__cabecera">
+      <div class="encabezado-seccion">
+        <h2 id="catalogo-titulo">Catálogo</h2>
+        <p>Toca un color para ver cómo queda y pídelo directo por WhatsApp.</p>
+      </div>
+
+      {
+        colecciones.length > 1 && (
+          <div class="filtros" role="group" aria-label="Filtrar por colección" data-filtros>
+            <button type="button" class="filtro" aria-pressed="true" data-filtro="">
+              Todos
+            </button>
+            {colecciones.map((c) => (
+              <button type="button" class="filtro" aria-pressed="false" data-filtro={c.id}>
+                {c.nombre}
+              </button>
+            ))}
+          </div>
+        )
+      }
+    </div>
+
+    <p class="visualmente-oculto" aria-live="polite" data-resultado></p>
+
+    <ul class="catalogo__rejilla" role="list">
+      {
+        productos.map((producto) => (
+          <li data-coleccion={producto.coleccion}>
+            <TarjetaProducto producto={producto} urlSitio={urlSitio} />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .catalogo__cabecera {
+    display: grid;
+    gap: var(--espacio-5);
+    margin-bottom: var(--espacio-7);
+  }
+
+  .catalogo__cabecera .encabezado-seccion {
+    margin-bottom: 0;
+  }
+
+  .filtros {
+    display: flex;
+    gap: var(--espacio-2);
+    overflow-x: auto;
+    margin-inline: calc(var(--margen-lateral) * -1);
+    padding: 4px var(--margen-lateral);
+    scrollbar-width: none;
+  }
+
+  .filtros::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filtro {
+    flex: none;
+    min-height: 2.75rem;
+    padding: 0.5rem 1.125rem;
+    border: 1.5px solid var(--color-borde);
+    border-radius: var(--radio-pildora);
+    background: var(--color-blanco);
+    font-weight: 500;
+    font-size: var(--texto-sm);
+    cursor: pointer;
+    transition:
+      border-color var(--duracion-corta),
+      background-color var(--duracion-corta);
+  }
+
+  .filtro:hover {
+    border-color: var(--color-morado);
+  }
+
+  .filtro[aria-pressed='true'] {
+    border-color: var(--color-morado);
+    background: var(--color-morado);
+    color: var(--color-blanco);
+  }
+
+  .catalogo__rejilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16.5rem), 1fr));
+    gap: var(--espacio-7) var(--espacio-5);
+  }
+
+  .catalogo__rejilla > [hidden] {
+    display: none;
+  }
+
+  @media (min-width: 60rem) {
+    .catalogo__rejilla {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .catalogo__cabecera {
+      grid-template-columns: 1fr auto;
+      align-items: end;
+    }
+
+    .filtros {
+      margin: 0;
+      padding: 4px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+  }
+</style>
+
+<script>
+  import '@/scripts/tarjetas';
+  import { NOMBRES_COLECCION, type ColeccionId } from '@/domain/colecciones';
+
+  const grupo = document.querySelector<HTMLElement>('[data-filtros]');
+  const botones = [...document.querySelectorAll<HTMLButtonElement>('[data-filtro]')];
+  const items = [...document.querySelectorAll<HTMLElement>('.catalogo__rejilla > li')];
+  const resultado = document.querySelector<HTMLElement>('[data-resultado]');
+
+  function filtrar(coleccion: string, anunciar = true) {
+    const valida = botones.some((b) => b.dataset.filtro === coleccion) ? coleccion : '';
+    botones.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filtro === valida)));
+    let visibles = 0;
+    items.forEach((li) => {
+      const ver = !valida || li.dataset.coleccion === valida;
+      li.hidden = !ver;
+      if (ver) visibles++;
+    });
+
+    const url = new URL(location.href);
+    if (valida) url.searchParams.set('coleccion', valida);
+    else url.searchParams.delete('coleccion');
+    history.replaceState(history.state, '', url);
+
+    if (anunciar && resultado) {
+      const nombre = valida ? NOMBRES_COLECCION[valida as ColeccionId] : 'todas las colecciones';
+      resultado.textContent = `${visibles} ${visibles === 1 ? 'producto' : 'productos'} en ${nombre}`;
+    }
+  }
+
+  if (grupo) {
+    botones.forEach((b) => b.addEventListener('click', () => filtrar(b.dataset.filtro ?? '')));
+
+    // Flechas izquierda/derecha para moverse entre filtros.
+    grupo.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = botones.indexOf(document.activeElement as HTMLButtonElement);
+      if (i < 0) return;
+      e.preventDefault();
+      botones[(i + (e.key === 'ArrowRight' ? 1 : -1) + botones.length) % botones.length]?.focus();
+    });
+
+    const inicial = new URLSearchParams(location.search).get('coleccion');
+    if (inicial) filtrar(inicial, false);
+  }
+
+  // Enlaces que llevan a una colección (por ejemplo, la franja de temporada).
+  document.querySelectorAll<HTMLAnchorElement>('[data-ir-coleccion]').forEach((enlace) =>
+    enlace.addEventListener('click', (e) => {
+      e.preventDefault();
+      filtrar(enlace.dataset.irColeccion ?? '');
+      document.querySelector('#catalogo')?.scrollIntoView();
+    }),
+  );
+</script>

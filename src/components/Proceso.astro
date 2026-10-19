@@ -1,0 +1,105 @@
+---
+import { sitio } from '@/config/sitio';
+
+const pasos = [
+  {
+    titulo: 'Diseño digital',
+    texto: 'Cada motivo se dibuja en la computadora: se ajustan los calados y el grosor para que el arete sea ligero y firme.',
+  },
+  {
+    titulo: 'Impresión 3D, capa por capa',
+    texto: 'La impresora levanta la pieza en capas de décimas de milímetro. Así salen detalles que a mano serían imposibles.',
+  },
+  {
+    titulo: 'Armado y revisión a mano',
+    texto: 'Se limpia cada pieza, se le pone el gancho y se revisa par por par antes de llegar a ti.',
+  },
+];
+---
+
+<section class="seccion" id="proceso" aria-labelledby="proceso-titulo">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <h2 id="proceso-titulo">Cómo se hacen</h2>
+    </div>
+
+    <ol class="pasos" role="list">
+      {
+        pasos.map((paso, i) => (
+          <li class="paso">
+            <span class="paso__numero" aria-hidden="true">
+              {i + 1}
+            </span>
+            <h3>{paso.titulo}</h3>
+            <p>{paso.texto}</p>
+          </li>
+        ))
+      }
+    </ol>
+
+    <p class="proceso__firma">
+      Detrás de {sitio.nombre} está {sitio.creador}: diseña, imprime y arma cada par. Si escribes por WhatsApp, te contesta en persona.
+    </p>
+  </div>
+</section>
+
+<style>
+  .pasos {
+    display: grid;
+    gap: var(--espacio-6);
+    counter-reset: paso;
+  }
+
+  .paso {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--espacio-2) var(--espacio-4);
+    align-items: baseline;
+  }
+
+  .paso__numero {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radio-sm);
+    background: var(--color-morado);
+    color: var(--color-blanco);
+    font-family: var(--fuente-display);
+    font-weight: 700;
+    font-size: var(--texto-lg);
+    align-self: start;
+  }
+
+  .paso p {
+    color: var(--color-lavanda);
+    max-width: 36ch;
+  }
+
+  .proceso__firma {
+    margin-top: var(--espacio-7);
+    padding-top: var(--espacio-5);
+    border-top: 1px solid var(--color-borde);
+    max-width: var(--medida);
+    font-size: var(--texto-lg);
+  }
+
+  @media (min-width: 60rem) {
+    .pasos {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--espacio-7);
+    }
+
+    .paso {
+      grid-template-columns: 1fr;
+      align-items: start;
+      align-content: start;
+    }
+
+    .paso__numero {
+      grid-row: auto;
+      margin-bottom: var(--espacio-3);
+    }
+  }
+</style>

@@ -1,0 +1,52 @@
+---
+import { sitio } from '@/config/sitio';
+import { pedidos } from '@/services/pedidos';
+import Icono from './Icono.astro';
+---
+
+<section class="seccion" id="mayoreo" aria-labelledby="mayoreo-titulo">
+  <div class="contenedor mayoreo">
+    <div class="mayoreo__texto">
+      <h2 id="mayoreo-titulo">Mayoreo para tu tienda</h2>
+      <p>
+        Si tienes tienda, bazar o vendes por catálogo, te damos precio especial desde{' '}
+        <strong>{sitio.mayoreo.minimoPares} pares</strong>, combinando modelos y colores. Escríbenos y te mandamos la cotización.
+      </p>
+    </div>
+    <a class="boton boton--whatsapp" href={pedidos.mayoreo()} target="_blank" rel="noopener">
+      <Icono nombre="whatsapp" />
+      Cotizar mayoreo
+    </a>
+  </div>
+</section>
+
+<style>
+  .mayoreo {
+    display: grid;
+    gap: var(--espacio-5);
+    justify-items: start;
+  }
+
+  .mayoreo__texto {
+    display: grid;
+    gap: var(--espacio-3);
+  }
+
+  .mayoreo__texto p {
+    font-size: var(--texto-lg);
+    color: var(--color-lavanda);
+    max-width: 52ch;
+  }
+
+  .mayoreo__texto strong {
+    color: var(--color-tinta);
+  }
+
+  @media (min-width: 60rem) {
+    .mayoreo {
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: var(--espacio-8);
+    }
+  }
+</style>

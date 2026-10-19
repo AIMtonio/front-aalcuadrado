@@ -1,0 +1,101 @@
+---
+import { sitio } from '@/config/sitio';
+
+const beneficios = [
+  {
+    dato: `${sitio.producto.pesoGramos} g`,
+    titulo: 'Casi no se sienten',
+    texto: 'Cada arete pesa lo que una hoja de papel doblada. Los traes todo el día sin que te jalen la oreja.',
+  },
+  {
+    dato: 'PLA',
+    titulo: 'No se rompen ni se arrugan',
+    texto: 'Tienen la forma del papel picado, pero aguantan la bolsa, el viaje y la fiesta.',
+  },
+  {
+    dato: 'Tú eliges',
+    titulo: 'Colores a tu gusto',
+    texto: 'Cada modelo se imprime en varios colores. Si buscas uno en especial, pregúntanos.',
+  },
+  {
+    dato: 'Ganchos',
+    titulo: `Ganchos ${sitio.producto.gancho}`,
+    texto: 'Cómodos para usar diario y fáciles de poner.',
+  },
+];
+---
+
+<section class="seccion seccion--alterna" id="beneficios" aria-labelledby="beneficios-titulo">
+  <div class="contenedor beneficios">
+    <div class="encabezado-seccion">
+      <h2 id="beneficios-titulo">Por qué {sitio.nombre}</h2>
+    </div>
+
+    <dl class="beneficios__lista">
+      {
+        beneficios.map((b) => (
+          <div class="beneficio">
+            <dt>
+              <span class="beneficio__dato">{b.dato}</span>
+              <span class="beneficio__titulo">{b.titulo}</span>
+            </dt>
+            <dd>{b.texto}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+</section>
+
+<style>
+  .beneficios__lista {
+    display: grid;
+    margin: 0;
+  }
+
+  .beneficio {
+    display: grid;
+    gap: var(--espacio-2);
+    padding-block: var(--espacio-5);
+    border-top: 1px solid var(--color-borde);
+  }
+
+  .beneficio dt {
+    display: grid;
+    gap: var(--espacio-1);
+  }
+
+  .beneficio__dato {
+    font-family: var(--fuente-display);
+    font-weight: 700;
+    font-size: var(--texto-xl);
+    color: var(--color-morado);
+    letter-spacing: -0.02em;
+  }
+
+  .beneficio__titulo {
+    font-weight: 700;
+    font-size: var(--texto-lg);
+  }
+
+  .beneficio dd {
+    margin: 0;
+    color: var(--color-lavanda);
+    max-width: 40ch;
+  }
+
+  @media (min-width: 48rem) {
+    .beneficios__lista {
+      grid-template-columns: repeat(2, 1fr);
+      column-gap: var(--espacio-7);
+    }
+  }
+
+  @media (min-width: 60rem) {
+    .beneficios {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: var(--espacio-7);
+    }
+  }
+</style>

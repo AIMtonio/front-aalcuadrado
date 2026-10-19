@@ -1,0 +1,22 @@
+{
+  "nombre": "Papel picado calaverita",
+  "coleccion": "dia-de-muertos",
+  "precio": 120,
+  "colores": [
+    {
+      "id": "morado",
+      "nombre": "Morado",
+      "hex": "#3B2A9B"
+    },
+    {
+      "id": "rosa",
+      "nombre": "Rosa mexicano",
+      "hex": "#E4007C"
+    }
+  ],
+  "descripcion": "Una calaverita calada como el papel picado de las ofrendas, pero que no se rompe ni se arruga.",
+  "etiqueta": "Temporada",
+  "disponible": true,
+  "destacado": true,
+  "orden": 1
+}

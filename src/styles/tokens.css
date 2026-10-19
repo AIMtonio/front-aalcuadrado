@@ -1,0 +1,62 @@
+/*
+ * Tokens de la marca aalcuadrado.
+ * Cambia un color aquí y se actualiza en todo el sitio.
+ */
+:root {
+  /* Paleta */
+  --color-morado: #3b2a9b;
+  --color-morado-oscuro: #2c1f78;
+  --color-morado-suave: #e9e6f7;
+  --color-rosa: #e4007c;
+  --color-rosa-oscuro: #b80064;
+  --color-cempasuchil: #ff9f1c;
+  --color-tinta: #17142b;
+  --color-lavanda: #5c5878;
+  --color-blanco: #ffffff;
+  --color-alterno: #f4f3fa;
+  --color-borde: #dcd9ea;
+  --color-whatsapp: #157a3f; /* verde oscuro: contraste AA con texto blanco */
+
+  /* Tipografía (las variables --fuente-* las genera Astro en astro.config.mjs) */
+  --fuente-display: var(--fuente-titulos), 'Arial Black', sans-serif;
+  --fuente-cuerpo: var(--fuente-texto), system-ui, sans-serif;
+
+  --texto-xs: 0.8125rem;
+  --texto-sm: 0.9375rem;
+  --texto-base: 1.0625rem;
+  --texto-lg: 1.25rem;
+  --texto-xl: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);
+  --texto-2xl: clamp(1.75rem, 1.3rem + 2vw, 2.625rem);
+  --texto-3xl: clamp(2.125rem, 1.4rem + 3.4vw, 4rem);
+
+  --medida: 65ch; /* largo máximo de línea */
+
+  /* Espaciado */
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 0.75rem;
+  --espacio-4: 1rem;
+  --espacio-5: 1.5rem;
+  --espacio-6: 2rem;
+  --espacio-7: 3rem;
+  --espacio-8: 4.5rem;
+  --espacio-seccion: clamp(4rem, 3rem + 5vw, 7.5rem);
+
+  --ancho-max: 76rem;
+  --margen-lateral: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
+
+  /* Formas: el "cuadrito" de la marca tiene esquinas de ~20 % del lado */
+  --radio-cuadrito: 0.3rem;
+  --radio-sm: 0.5rem;
+  --radio-md: 0.875rem;
+  --radio-lg: 1.25rem;
+  --radio-pildora: 999px;
+
+  /* Movimiento */
+  --curva-salida: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duracion-corta: 160ms;
+  --duracion-media: 280ms;
+
+  --altura-encabezado: 4rem;
+  --foco: 0 0 0 3px var(--color-blanco), 0 0 0 5px var(--color-morado);
+}

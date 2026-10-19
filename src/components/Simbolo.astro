@@ -1,0 +1,98 @@
+---
+/**
+ * El símbolo de aalcuadrado dibujado con código: una "A" de cuadritos
+ * en una cuadrícula de 5×5 y un cuadrito rosa que hace de "²".
+ * Con `animado`, los cuadritos se acomodan de abajo hacia arriba,
+ * capa por capa, como en una impresora 3D.
+ */
+interface Props {
+  class?: string;
+  animado?: boolean;
+  /** Texto para lectores de pantalla. Si se omite, el símbolo es decorativo. */
+  etiqueta?: string;
+}
+
+const { class: clase, animado = false, etiqueta } = Astro.props;
+
+// [columna, fila] de cada cuadrito de la "A"
+const celdas: [number, number][] = [
+  [1, 0], [2, 0], [3, 0],
+  [0, 1], [4, 1],
+  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2],
+  [0, 3], [4, 3],
+  [0, 4], [4, 4],
+];
+// Las capas se imprimen de abajo (fila 4) hacia arriba (fila 0).
+const ordenCapa = (fila: number) => 4 - fila;
+---
+
+<svg
+  class:list={['simbolo', clase, { 'simbolo--animado': animado }]}
+  viewBox="112 46 196 196"
+  xmlns="http://www.w3.org/2000/svg"
+  role={etiqueta ? 'img' : undefined}
+  aria-label={etiqueta}
+  aria-hidden={etiqueta ? undefined : 'true'}
+  focusable="false"
+>
+  {
+    celdas.map(([c, f]) => (
+      <rect
+        x={122 + c * 30}
+        y={80 + f * 30}
+        width="26"
+        height="26"
+        rx="5"
+        fill="#3B2A9B"
+        style={`--capa:${ordenCapa(f)};--col:${c}`}
+      />
+    ))
+  }
+  <rect class="simbolo__cuadrado" x="278" y="56" width="20" height="20" rx="4" fill="#E4007C" />
+</svg>
+
+<style>
+  .simbolo {
+    overflow: visible;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .simbolo--animado rect {
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+      animation: capa 520ms var(--curva-salida) both;
+      animation-delay: calc(var(--capa) * 150ms + var(--col) * 35ms + 150ms);
+    }
+
+    .simbolo--animado .simbolo__cuadrado {
+      transform-origin: 50% 50%;
+      animation: cuadrado 560ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+      animation-delay: 1250ms;
+    }
+  }
+
+  @keyframes capa {
+    from {
+      opacity: 0;
+      transform: translateY(-140%) scaleY(0.3);
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes cuadrado {
+    from {
+      opacity: 0;
+      transform: scale(0) rotate(-45deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

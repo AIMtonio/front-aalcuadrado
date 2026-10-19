@@ -1,0 +1,134 @@
+---
+import type { ImageMetadata } from 'astro';
+import { Picture } from 'astro:assets';
+import type { Producto } from '@/domain/catalogo';
+import { pedidos } from '@/services/pedidos';
+import Simbolo from './Simbolo.astro';
+import Icono from './Icono.astro';
+
+interface Props {
+  destacado?: Producto<ImageMetadata>;
+}
+
+const { destacado } = Astro.props;
+const portada = destacado?.fotos[0];
+---
+
+<section class="hero" id="inicio" aria-labelledby="hero-titulo">
+  <div class="contenedor hero__rejilla">
+    <div class="hero__texto">
+      <Simbolo class="hero__simbolo" animado />
+      <h1 id="hero-titulo">Lo mexicano, impreso capa por capa</h1>
+      <p class="hero__subtitulo">Aretes con motivos mexicanos, diseñados e impresos en 3D. Ligeros y en tus colores.</p>
+      <div class="hero__acciones">
+        <a class="boton boton--principal" href="#catalogo">Ver catálogo</a>
+        <a class="boton boton--contorno" href={pedidos.general()} target="_blank" rel="noopener">
+          <Icono nombre="whatsapp" />
+          Pedir por WhatsApp
+        </a>
+      </div>
+    </div>
+
+    {
+      destacado && portada && (
+        <a class="hero__foto" href={`#producto/${destacado.slug}/1`} aria-label={`Ver fotos de ${destacado.nombre}`}>
+          <Picture
+            src={portada.src}
+            alt={portada.alt}
+            formats={['avif', 'webp']}
+            widths={[400, 600, 800, 1100]}
+            sizes="(min-width: 76rem) 34rem, (min-width: 60rem) 44vw, 92vw"
+            loading="eager"
+            fetchpriority="high"
+          />
+          <span class="hero__pie-foto">{destacado.nombre}</span>
+        </a>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-block: var(--espacio-6) var(--espacio-seccion);
+  }
+
+  .hero__rejilla {
+    display: grid;
+    gap: var(--espacio-7);
+    align-items: center;
+  }
+
+  .hero__texto {
+    display: grid;
+    gap: var(--espacio-5);
+    justify-items: start;
+  }
+
+  .hero :global(.hero__simbolo) {
+    width: clamp(4.5rem, 3rem + 6vw, 7.5rem);
+    height: auto;
+    margin-bottom: var(--espacio-2);
+  }
+
+  .hero h1 {
+    max-width: 14ch;
+  }
+
+  .hero__subtitulo {
+    max-width: 38ch;
+    font-size: var(--texto-lg);
+    color: var(--color-lavanda);
+  }
+
+  .hero__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-3);
+    margin-top: var(--espacio-2);
+  }
+
+  .hero__foto {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radio-lg);
+    overflow: hidden;
+    background: var(--color-alterno);
+    cursor: zoom-in;
+  }
+
+  .hero__foto :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .hero__pie-foto {
+    position: absolute;
+    left: var(--espacio-4);
+    bottom: var(--espacio-4);
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radio-cuadrito);
+    background: var(--color-blanco);
+    font-size: var(--texto-sm);
+    font-weight: 700;
+  }
+
+  @media (min-width: 60rem) {
+    .hero {
+      padding-top: var(--espacio-8);
+    }
+
+    .hero__rejilla {
+      grid-template-columns: 1.1fr 1fr;
+      gap: var(--espacio-8);
+    }
+
+    .hero__foto {
+      max-width: 34rem;
+      justify-self: end;
+      width: 100%;
+    }
+  }
+</style>

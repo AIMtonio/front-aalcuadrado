@@ -1,0 +1,16 @@
+{
+  "nombre": "Nochebuena",
+  "coleccion": "navidad",
+  "precio": 130,
+  "colores": [
+    {
+      "id": "rojo",
+      "nombre": "Rojo",
+      "hex": "#C8102E"
+    }
+  ],
+  "descripcion": "La flor de diciembre, en capas que se notan cuando les da la luz.",
+  "disponible": false,
+  "destacado": false,
+  "orden": 3
+}

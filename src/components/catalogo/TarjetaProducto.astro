@@ -1,0 +1,259 @@
+---
+import type { ImageMetadata } from 'astro';
+import { Picture } from 'astro:assets';
+import type { Producto } from '@/domain/catalogo';
+import { formatearPrecio, pedidos } from '@/services/pedidos';
+import Icono from '@/components/Icono.astro';
+
+interface Props {
+  producto: Producto<ImageMetadata>;
+  /** URL absoluta del sitio, para el enlace profundo en el mensaje de WhatsApp. */
+  urlSitio: string;
+}
+
+const { producto, urlSitio } = Astro.props;
+const enlace = `${urlSitio}#producto/${producto.slug}`;
+const idTitulo = `producto-${producto.slug}`;
+const etiqueta = producto.disponible ? producto.etiqueta : 'Agotado';
+---
+
+<article
+  class:list={['tarjeta', { 'tarjeta--agotado': !producto.disponible }]}
+  aria-labelledby={idTitulo}
+  data-tarjeta
+  data-slug={producto.slug}
+  data-coleccion={producto.coleccion}
+  data-nombre={producto.nombre}
+  data-enlace={enlace}
+  data-disponible={String(producto.disponible)}
+>
+  <div class="tarjeta__media">
+    <div class="tarjeta__pista" data-pista>
+      {
+        producto.fotos.map((foto, i) => (
+          <a
+            class="tarjeta__foto"
+            href={`#producto/${producto.slug}/${i + 1}`}
+            data-foto={i}
+            data-color={foto.colorId}
+            tabindex={i === 0 ? undefined : -1}
+            aria-label={`Ver fotos de ${producto.nombre} (${producto.fotos.length})`}
+          >
+            <Picture
+              src={foto.src}
+              alt={foto.alt}
+              formats={['avif', 'webp']}
+              widths={[360, 540, 720, 960]}
+              sizes="(min-width: 76rem) 23rem, (min-width: 60rem) 30vw, (min-width: 36rem) 46vw, 92vw"
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
+        ))
+      }
+    </div>
+
+    {etiqueta && <span class:list={['tarjeta__etiqueta', { 'tarjeta__etiqueta--agotado': !producto.disponible }]}>{etiqueta}</span>}
+
+    {
+      producto.fotos.length > 1 && (
+        <div class="tarjeta__indicadores" aria-hidden="true" data-indicadores>
+          {producto.fotos.map((_, i) => (
+            <span class:list={['tarjeta__indicador', { activo: i === 0 }]} />
+          ))}
+        </div>
+      )
+    }
+  </div>
+
+  <div class="tarjeta__cuerpo">
+    <div class="tarjeta__titulo">
+      <h3 id={idTitulo}>{producto.nombre}</h3>
+      {
+        producto.precio !== undefined ? (
+          <p class="tarjeta__precio">{formatearPrecio(producto.precio)}</p>
+        ) : (
+          <p class="tarjeta__precio tarjeta__precio--consulta">Pregunta por WhatsApp</p>
+        )
+      }
+    </div>
+
+    {producto.descripcion && <p class="tarjeta__descripcion">{producto.descripcion}</p>}
+
+    {
+      producto.colores.length > 0 && (
+        <fieldset class="cuadritos-color" data-colores>
+          <legend class="visualmente-oculto">Color de {producto.nombre}</legend>
+          {producto.colores.map((color) => (
+            <button
+              type="button"
+              class="cuadrito-color"
+              style={`--muestra:${color.hex}`}
+              aria-pressed="false"
+              data-color-id={color.id}
+              data-color-nombre={color.nombre}
+              title={color.nombre}
+            >
+              <span class="visualmente-oculto">{color.nombre}</span>
+            </button>
+          ))}
+          <span class="tarjeta__color-elegido" data-color-elegido aria-live="polite" />
+        </fieldset>
+      )
+    }
+
+    <a
+      class:list={['boton', 'boton--chico', producto.disponible ? 'boton--whatsapp' : 'boton--contorno', 'tarjeta__boton']}
+      href={pedidos.pedirProducto({ nombre: producto.nombre, enlace, disponible: producto.disponible })}
+      target="_blank"
+      rel="noopener"
+      data-boton-pedido
+    >
+      <Icono nombre="whatsapp" />
+      {producto.disponible ? 'Pedir por WhatsApp' : 'Avísame por WhatsApp'}
+    </a>
+  </div>
+</article>
+
+<style>
+  .tarjeta {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: var(--espacio-4);
+  }
+
+  .tarjeta__media {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radio-md);
+    overflow: hidden;
+    background: var(--color-alterno);
+  }
+
+  .tarjeta__pista {
+    display: flex;
+    height: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .tarjeta__pista::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tarjeta__foto {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    cursor: zoom-in;
+  }
+
+  .tarjeta__foto:focus-visible {
+    outline-offset: -4px;
+  }
+
+  .tarjeta__foto :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .tarjeta--agotado .tarjeta__foto :global(img) {
+    filter: grayscale(0.55);
+    opacity: 0.85;
+  }
+
+  .tarjeta__etiqueta {
+    position: absolute;
+    top: var(--espacio-3);
+    left: var(--espacio-3);
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radio-cuadrito);
+    background: var(--color-blanco);
+    color: var(--color-tinta);
+    font-size: var(--texto-xs);
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  .tarjeta__etiqueta--agotado {
+    background: var(--color-tinta);
+    color: var(--color-blanco);
+  }
+
+  /* Indicadores: cuadritos, como en el logo */
+  .tarjeta__indicadores {
+    position: absolute;
+    bottom: var(--espacio-3);
+    left: 50%;
+    display: flex;
+    gap: 0.3125rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: var(--radio-sm);
+    background: rgb(23 20 43 / 0.35);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .tarjeta__indicador {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: 2px;
+    background: rgb(255 255 255 / 0.55);
+    transition:
+      background-color var(--duracion-corta),
+      transform var(--duracion-corta);
+  }
+
+  .tarjeta__indicador.activo {
+    background: var(--color-blanco);
+    transform: scale(1.25);
+  }
+
+  .tarjeta__cuerpo {
+    display: grid;
+    align-content: start;
+    gap: var(--espacio-3);
+  }
+
+  .tarjeta__titulo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--espacio-3);
+  }
+
+  .tarjeta__titulo h3 {
+    font-size: var(--texto-base);
+  }
+
+  .tarjeta__precio {
+    flex: none;
+    font-weight: 700;
+    font-size: var(--texto-lg);
+  }
+
+  .tarjeta__precio--consulta {
+    font-size: var(--texto-sm);
+    font-weight: 500;
+    color: var(--color-lavanda);
+  }
+
+  .tarjeta__descripcion {
+    color: var(--color-lavanda);
+    font-size: var(--texto-sm);
+  }
+
+  .tarjeta__color-elegido {
+    align-self: center;
+    margin-left: var(--espacio-2);
+    font-size: var(--texto-sm);
+    color: var(--color-lavanda);
+  }
+
+  .tarjeta__boton {
+    justify-self: start;
+    margin-top: var(--espacio-2);
+  }
+</style>

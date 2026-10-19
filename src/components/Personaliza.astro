@@ -1,0 +1,92 @@
+---
+import { sitio } from '@/config/sitio';
+import { formatearPrecio, pedidos } from '@/services/pedidos';
+import Icono from './Icono.astro';
+
+const opciones = [
+  { titulo: 'Tus colores', texto: 'Combina los colores que quieras en cualquier modelo del catálogo.' },
+  {
+    titulo: 'Iniciales o nombre',
+    texto: `Agrega una inicial o un nombre corto al diseño por ${formatearPrecio(sitio.personalizacion.precioNombre)} más.`,
+  },
+  { titulo: 'Para tu evento', texto: 'Bodas, XV años, bautizos o la fiesta de la oficina: recuerdos con el motivo y los colores de tu evento.' },
+];
+---
+
+<section class="seccion personaliza" id="personaliza" aria-labelledby="personaliza-titulo">
+  <div class="contenedor personaliza__rejilla">
+    <div class="personaliza__texto">
+      <h2 id="personaliza-titulo">Hazlos tuyos</h2>
+      <p>Cuéntanos tu idea y te decimos cómo quedaría y cuánto cuesta.</p>
+      <a class="boton boton--principal" href={pedidos.personalizado()} target="_blank" rel="noopener">
+        <Icono nombre="whatsapp" />
+        Cotizar mi diseño
+      </a>
+    </div>
+
+    <ul class="personaliza__opciones" role="list">
+      {
+        opciones.map((o) => (
+          <li>
+            <h3>{o.titulo}</h3>
+            <p>{o.texto}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .personaliza {
+    background: var(--color-morado);
+    color: var(--color-blanco);
+  }
+
+  .personaliza__rejilla {
+    display: grid;
+    gap: var(--espacio-7);
+  }
+
+  .personaliza__texto {
+    display: grid;
+    gap: var(--espacio-4);
+    justify-items: start;
+    align-content: start;
+  }
+
+  .personaliza__texto p {
+    font-size: var(--texto-lg);
+    color: rgb(255 255 255 / 0.85);
+    max-width: 32ch;
+    margin-bottom: var(--espacio-3);
+  }
+
+  .personaliza :focus-visible {
+    outline-color: var(--color-blanco);
+  }
+
+  .personaliza__opciones {
+    display: grid;
+    gap: var(--espacio-5);
+  }
+
+  .personaliza__opciones li {
+    display: grid;
+    gap: var(--espacio-2);
+    padding-left: var(--espacio-5);
+    border-left: 3px solid rgb(255 255 255 / 0.3);
+  }
+
+  .personaliza__opciones p {
+    color: rgb(255 255 255 / 0.85);
+    max-width: 44ch;
+  }
+
+  @media (min-width: 60rem) {
+    .personaliza__rejilla {
+      grid-template-columns: 1fr 1.2fr;
+      gap: var(--espacio-8);
+    }
+  }
+</style>

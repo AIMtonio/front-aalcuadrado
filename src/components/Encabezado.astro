@@ -1,0 +1,179 @@
+---
+import Logo from './Logo.astro';
+import Icono from './Icono.astro';
+import { pedidos } from '@/services/pedidos';
+
+const enlaces = [
+  { href: '#catalogo', texto: 'Catálogo' },
+  { href: '#galeria', texto: 'Galería' },
+  { href: '#personaliza', texto: 'Personaliza' },
+  { href: '#mayoreo', texto: 'Mayoreo' },
+  { href: '#preguntas', texto: 'Preguntas' },
+];
+---
+
+<header class="encabezado">
+  <div class="contenedor encabezado__barra">
+    <a class="encabezado__logo" href="#inicio">
+      <Logo />
+    </a>
+
+    <button
+      class="encabezado__menu-boton"
+      type="button"
+      aria-expanded="false"
+      aria-controls="menu-principal"
+      data-menu-boton
+    >
+      <Icono nombre="menu" />
+      <span class="visualmente-oculto">Abrir menú</span>
+    </button>
+
+    <nav class="encabezado__nav" id="menu-principal" aria-label="Principal" data-menu>
+      <ul role="list">
+        {
+          enlaces.map((e) => (
+            <li>
+              <a href={e.href}>{e.texto}</a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="boton boton--whatsapp boton--chico" href={pedidos.general()} target="_blank" rel="noopener">
+        <Icono nombre="whatsapp" />
+        Pedir por WhatsApp
+      </a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .encabezado {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgb(255 255 255 / 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-borde);
+  }
+
+  .encabezado__barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-4);
+    min-height: var(--altura-encabezado);
+  }
+
+  .encabezado__logo {
+    display: inline-flex;
+    padding-block: var(--espacio-2);
+    text-decoration: none;
+    border-radius: var(--radio-sm);
+  }
+
+  .encabezado__menu-boton {
+    display: inline-grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: calc(var(--espacio-2) * -1);
+    border: 0;
+    border-radius: var(--radio-sm);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .encabezado__nav {
+    display: none;
+  }
+
+  .encabezado__nav ul a {
+    display: block;
+    padding: var(--espacio-3) 0;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .encabezado__nav ul a:hover {
+    color: var(--color-morado);
+  }
+
+  /* Móvil: menú desplegable */
+  @media (max-width: 59.99rem) {
+    .encabezado__nav[data-abierto] {
+      display: grid;
+      gap: var(--espacio-4);
+      position: absolute;
+      inset: 100% 0 auto;
+      padding: var(--espacio-3) var(--margen-lateral) var(--espacio-6);
+      background: var(--color-blanco);
+      border-bottom: 1px solid var(--color-borde);
+      box-shadow: 0 24px 40px -24px rgb(23 20 43 / 0.25);
+    }
+
+    .encabezado__nav ul a {
+      font-size: var(--texto-lg);
+      border-bottom: 1px solid var(--color-alterno);
+    }
+
+    .encabezado__nav .boton {
+      justify-self: start;
+    }
+  }
+
+  @media (min-width: 60rem) {
+    .encabezado__menu-boton {
+      display: none;
+    }
+
+    .encabezado__nav {
+      display: flex;
+      align-items: center;
+      gap: var(--espacio-6);
+    }
+
+    .encabezado__nav ul {
+      display: flex;
+      gap: var(--espacio-5);
+    }
+
+    .encabezado__nav ul a {
+      padding: var(--espacio-2) 0;
+      font-size: var(--texto-sm);
+    }
+  }
+</style>
+
+<script>
+  const boton = document.querySelector<HTMLButtonElement>('[data-menu-boton]');
+  const menu = document.querySelector<HTMLElement>('[data-menu]');
+
+  if (boton && menu) {
+    const etiqueta = boton.querySelector('.visualmente-oculto');
+
+    const alternar = (abrir: boolean) => {
+      boton.setAttribute('aria-expanded', String(abrir));
+      menu.toggleAttribute('data-abierto', abrir);
+      if (etiqueta) etiqueta.textContent = abrir ? 'Cerrar menú' : 'Abrir menú';
+    };
+
+    boton.addEventListener('click', () => alternar(boton.getAttribute('aria-expanded') !== 'true'));
+
+    // Cerrar al elegir un enlace, con Escape o al tocar fuera.
+    menu.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) alternar(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && boton.getAttribute('aria-expanded') === 'true') {
+        alternar(false);
+        boton.focus();
+      }
+    });
+    document.addEventListener('click', (e) => {
+      const objetivo = e.target as Node;
+      if (!menu.contains(objetivo) && !boton.contains(objetivo)) alternar(false);
+    });
+  }
+</script>

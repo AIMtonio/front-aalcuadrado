@@ -1,0 +1,80 @@
+---
+import { sitio } from '@/config/sitio';
+import Icono from './Icono.astro';
+---
+
+<section class="seccion seccion--alterna" id="preguntas" aria-labelledby="preguntas-titulo">
+  <div class="contenedor preguntas">
+    <div class="encabezado-seccion">
+      <h2 id="preguntas-titulo">Preguntas frecuentes</h2>
+    </div>
+
+    <div class="preguntas__lista">
+      {
+        sitio.preguntas.map((p) => (
+          <details class="pregunta" name="preguntas">
+            <summary>
+              <span>{p.pregunta}</span>
+              <Icono nombre="mas" class="pregunta__icono" />
+            </summary>
+            <p>{p.respuesta}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .preguntas__lista {
+    border-top: 1px solid var(--color-borde);
+    max-width: 48rem;
+  }
+
+  .pregunta {
+    border-bottom: 1px solid var(--color-borde);
+  }
+
+  .pregunta summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-4);
+    padding-block: var(--espacio-5);
+    font-weight: 700;
+    font-size: var(--texto-lg);
+    line-height: 1.35;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .pregunta summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .pregunta summary:hover {
+    color: var(--color-morado);
+  }
+
+  .pregunta :global(.pregunta__icono) {
+    transition: transform var(--duracion-media) var(--curva-salida);
+  }
+
+  .pregunta[open] :global(.pregunta__icono) {
+    transform: rotate(45deg);
+  }
+
+  .pregunta p {
+    padding-bottom: var(--espacio-5);
+    color: var(--color-lavanda);
+    max-width: var(--medida);
+  }
+
+  @media (min-width: 60rem) {
+    .preguntas {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: var(--espacio-7);
+    }
+  }
+</style>

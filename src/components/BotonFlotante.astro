@@ -1,0 +1,35 @@
+---
+import Icono from './Icono.astro';
+import { pedidos } from '@/services/pedidos';
+---
+
+<a class="flotante" href={pedidos.general()} target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
+  <Icono nombre="whatsapp" />
+</a>
+
+<style>
+  .flotante {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem; /* un cuadrito, como el de la marca */
+    background: var(--color-whatsapp);
+    color: var(--color-blanco);
+    box-shadow: 0 10px 24px -8px rgb(21 122 63 / 0.6);
+    transition: transform var(--duracion-corta) var(--curva-salida);
+  }
+
+  .flotante:hover {
+    transform: translateY(-2px);
+  }
+
+  .flotante :global(.icono) {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+</style>

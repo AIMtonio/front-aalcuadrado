@@ -1,0 +1,107 @@
+---
+import { sitio } from '@/config/sitio';
+import { pedidos } from '@/services/pedidos';
+import Logo from './Logo.astro';
+import Icono from './Icono.astro';
+
+const redes = [
+  { nombre: 'Instagram', icono: 'instagram', ...sitio.redes.instagram },
+  { nombre: 'Facebook', icono: 'facebook', ...sitio.redes.facebook },
+  { nombre: 'TikTok', icono: 'tiktok', ...sitio.redes.tiktok },
+] as const;
+const anio = new Date().getFullYear();
+---
+
+<footer class="pie">
+  <div class="contenedor pie__rejilla">
+    <div class="pie__marca">
+      <Logo tamano="grande" claro />
+      <p>Hecho en {sitio.ciudad}, capa por capa.</p>
+    </div>
+
+    <ul class="pie__redes" role="list" aria-label="Redes sociales y contacto">
+      {
+        redes.map((r) => (
+          <li>
+            <a href={r.url} target="_blank" rel="noopener">
+              <Icono nombre={r.icono} />
+              <span>
+                <span class="visualmente-oculto">{r.nombre}: </span>
+                {r.usuario}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+      <li>
+        <a href={pedidos.general()} target="_blank" rel="noopener">
+          <Icono nombre="whatsapp" />
+          <span>WhatsApp</span>
+        </a>
+      </li>
+    </ul>
+
+    <p class="pie__legal">© {anio} {sitio.nombre}</p>
+  </div>
+</footer>
+
+<style>
+  .pie {
+    padding-block: var(--espacio-8) calc(var(--espacio-8) + 3rem);
+    background: var(--color-tinta);
+    color: var(--color-blanco);
+  }
+
+  .pie__rejilla {
+    display: grid;
+    gap: var(--espacio-6);
+  }
+
+  .pie__marca {
+    display: grid;
+    gap: var(--espacio-3);
+    justify-items: start;
+  }
+
+  .pie__marca p,
+  .pie__legal {
+    color: rgb(255 255 255 / 0.72);
+  }
+
+  .pie__redes {
+    display: grid;
+    gap: var(--espacio-1);
+  }
+
+  .pie__redes a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--espacio-3);
+    min-height: 2.75rem;
+    text-decoration: none;
+  }
+
+  .pie__redes a:hover span {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+
+  .pie :focus-visible {
+    outline-color: var(--color-blanco);
+  }
+
+  .pie__legal {
+    font-size: var(--texto-sm);
+  }
+
+  @media (min-width: 60rem) {
+    .pie__rejilla {
+      grid-template-columns: 1fr auto;
+      align-items: start;
+    }
+
+    .pie__legal {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

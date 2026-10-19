@@ -1,0 +1,51 @@
+---
+import Simbolo from './Simbolo.astro';
+
+interface Props {
+  class?: string;
+  /** Tamaño del símbolo; el texto se ajusta solo. */
+  tamano?: 'chico' | 'grande';
+  claro?: boolean;
+}
+
+const { class: clase, tamano = 'chico', claro = false } = Astro.props;
+---
+
+<span class:list={['logo', `logo--${tamano}`, { 'logo--claro': claro }, clase]} role="img" aria-label="A al cuadrado">
+  <Simbolo class="logo__simbolo" />
+  <span class="logo__texto" aria-hidden="true">aalcuadrado</span>
+</span>
+
+<style>
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    color: var(--color-tinta);
+    font-family: var(--fuente-display);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .logo--chico {
+    font-size: 1.125rem;
+  }
+
+  .logo--grande {
+    font-size: 1.5rem;
+  }
+
+  .logo--claro {
+    color: var(--color-blanco);
+  }
+
+  .logo :global(.logo__simbolo) {
+    width: 1.6em;
+    height: 1.6em;
+  }
+
+  .logo--claro :global(.logo__simbolo rect:not(:last-child)) {
+    fill: var(--color-blanco);
+  }
+</style>

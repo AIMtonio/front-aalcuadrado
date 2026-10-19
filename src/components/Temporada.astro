@@ -1,0 +1,69 @@
+---
+import { sitio } from '@/config/sitio';
+import { formatearPrecio } from '@/services/pedidos';
+
+interface Props {
+  /** Solo se muestra el enlace si la colección tiene productos. */
+  hayProductos: boolean;
+}
+
+const { hayProductos } = Astro.props;
+const { temporada } = sitio;
+---
+
+{
+  temporada.activa && (
+    <aside class="temporada" aria-label={temporada.titulo}>
+      <div class="contenedor temporada__barra">
+        <p>
+          <strong>{temporada.titulo}.</strong> {temporada.texto} <strong class="temporada__precio">{formatearPrecio(temporada.precio)}</strong>
+        </p>
+        {hayProductos && (
+          <a class="temporada__enlace" href={`?coleccion=${temporada.coleccion}#catalogo`} data-ir-coleccion={temporada.coleccion}>
+            Ver la colección
+          </a>
+        )}
+      </div>
+    </aside>
+  )
+}
+
+<style>
+  .temporada {
+    background: var(--color-cempasuchil);
+    color: var(--color-tinta);
+  }
+
+  .temporada__barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-3) var(--espacio-5);
+    padding-block: var(--espacio-5);
+  }
+
+  .temporada p {
+    font-size: var(--texto-lg);
+  }
+
+  .temporada__precio {
+    font-family: var(--fuente-display);
+    white-space: nowrap;
+  }
+
+  .temporada__enlace {
+    font-weight: 700;
+    text-underline-offset: 0.25em;
+    text-decoration-thickness: 2px;
+    padding-block: var(--espacio-2);
+  }
+
+  .temporada__enlace:hover {
+    text-decoration-thickness: 3px;
+  }
+
+  .temporada :focus-visible {
+    outline-color: var(--color-tinta);
+  }
+</style>

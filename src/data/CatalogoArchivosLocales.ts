@@ -15,6 +15,7 @@ import {
   type Producto,
   type ProductoJson,
 } from '@/domain/catalogo';
+import { sitio } from '@/config/sitio';
 import type { CatalogoRepository } from './CatalogoRepository';
 
 /*
@@ -127,7 +128,8 @@ function construirProductos(): Producto<Imagen>[] {
       slug,
       nombre: datos.nombre,
       coleccion: datos.coleccion,
-      precio: datos.precio,
+      // De momento todos los diseños listos cuestan lo mismo (ver sitio.precios).
+      precio: sitio.precios.listo,
       colores: datos.colores,
       descripcion: datos.descripcion,
       etiqueta: datos.etiqueta,

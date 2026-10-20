@@ -22,7 +22,7 @@ export const sitio = {
      * Número con lada de país y sin espacios ni signos.
      * Ejemplo para un celular de CDMX: 5215512345678.
      */
-    numero: '5215512345678', // [TU_NÚMERO_CON_LADA]
+    numero: '525510727166',
   },
 
   redes: {
@@ -38,12 +38,18 @@ export const sitio = {
     coleccion: 'dia-de-muertos' as const,
     titulo: 'Temporada de Día de Muertos',
     texto: 'Llévate 2 pares por',
-    precio: 200, // [200]
+    precio: 70, // [200]
   },
 
-  personalizacion: {
-    /** Costo extra por iniciales o nombre, en MXN. */
-    precioNombre: 40, // [40]
+  /**
+   * Precios fijos por ahora, en MXN. Mientras estén aquí, el catálogo
+   * ignora el `precio` de cada producto.json.
+   */
+  precios: {
+    /** Cualquier diseño ya listo del catálogo. */
+    listo: 40,
+    /** Diseño personalizado (colores, iniciales, nombre o evento). */
+    personalizado: 60,
   },
 
   mayoreo: {
@@ -73,11 +79,11 @@ export const sitio = {
     {
       pregunta: '¿Cuánto tarda mi pedido?',
       respuesta:
-        'Si el modelo está disponible, lo enviamos en [X] días hábiles. Los personalizados tardan un poco más porque se imprimen a tu medida; te confirmamos la fecha al cotizar.',
+        'Si el modelo está disponible, lo enviamos en 2 días hábiles. Los personalizados tardan un poco más porque se imprimen a tu medida; te confirmamos la fecha al cotizar.',
     },
     {
       pregunta: '¿Hacen envíos?',
-      respuesta: 'Sí. [Zonas de envío y costo]. También puedes recoger en [punto de entrega].',
+      respuesta: 'De momento puedes recoger en punto de entrega dentro de Mérida.',
     },
     {
       pregunta: '¿Cómo puedo pagar?',

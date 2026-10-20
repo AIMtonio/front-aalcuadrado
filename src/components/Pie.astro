@@ -4,11 +4,12 @@ import { pedidos } from '@/services/pedidos';
 import Logo from './Logo.astro';
 import Icono from './Icono.astro';
 
-const redes = [
-  { nombre: 'Instagram', icono: 'instagram', ...sitio.redes.instagram },
-  { nombre: 'Facebook', icono: 'facebook', ...sitio.redes.facebook },
-  { nombre: 'TikTok', icono: 'tiktok', ...sitio.redes.tiktok },
-] as const;
+// Redes sociales ocultas de momento; solo se muestra WhatsApp.
+// const redes = [
+//   { nombre: 'Instagram', icono: 'instagram', ...sitio.redes.instagram },
+//   { nombre: 'Facebook', icono: 'facebook', ...sitio.redes.facebook },
+//   { nombre: 'TikTok', icono: 'tiktok', ...sitio.redes.tiktok },
+// ] as const;
 const anio = new Date().getFullYear();
 ---
 
@@ -19,8 +20,8 @@ const anio = new Date().getFullYear();
       <p>Hecho en {sitio.ciudad}, capa por capa.</p>
     </div>
 
-    <ul class="pie__redes" role="list" aria-label="Redes sociales y contacto">
-      {
+    <ul class="pie__redes" role="list" aria-label="Contacto">
+      {/*
         redes.map((r) => (
           <li>
             <a href={r.url} target="_blank" rel="noopener">
@@ -32,7 +33,7 @@ const anio = new Date().getFullYear();
             </a>
           </li>
         ))
-      }
+      */}
       <li>
         <a href={pedidos.general()} target="_blank" rel="noopener">
           <Icono nombre="whatsapp" />

@@ -33,7 +33,8 @@ const organizacion = {
   logo: new URL(`${base}logo.png`, Astro.site).href,
   description: sitio.descripcion,
   founder: { '@type': 'Person', name: sitio.creador },
-  sameAs: Object.values(sitio.redes).map((r) => r.url),
+  // Redes sociales ocultas de momento.
+  // sameAs: Object.values(sitio.redes).map((r) => r.url),
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'sales',

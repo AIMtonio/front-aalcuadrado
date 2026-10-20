@@ -1,41 +1,37 @@
 import type { ImageMetadata } from 'astro';
+import { sitio } from '@/config/sitio';
 import {
   COLECCIONES,
   GaleriaJsonSchema,
   NOMBRES_COLECCION,
   ProductoJsonSchema,
-  colorDeArchivo,
-  esPortada,
+  fotosDelProducto,
+  idDeColor,
+  normalizarRuta,
   ordenNatural,
-  ordenarArchivos,
   textoDesdeArchivo,
   type Coleccion,
   type FotoGaleria,
   type FotoProducto,
   type Producto,
-  type ProductoJson,
 } from '@/domain/catalogo';
-import { sitio } from '@/config/sitio';
 import type { CatalogoRepository } from './CatalogoRepository';
 
 /*
  * Vite resuelve estos patrones al compilar: cada imagen se importa como
  * `ImageMetadata` y Astro la optimiza (AVIF/WebP, varios tamaños).
- * Agregar una carpeta o una foto no requiere tocar código.
+ * Los JSON (que escribe Pages CMS) solo guardan la ruta de cada foto;
+ * aquí se cruza esa ruta con la imagen ya importada.
  */
-const imagenesProductos = import.meta.glob<ImageMetadata>(
-  '/src/content/productos/*/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}',
+const imagenes = import.meta.glob<ImageMetadata>(
+  '/src/content/fotos/**/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}',
   { eager: true, import: 'default' },
 );
-const jsonProductos = import.meta.glob<unknown>('/src/content/productos/*/producto.json', {
+const jsonProductos = import.meta.glob<unknown>('/src/content/productos/*.json', {
   eager: true,
   import: 'default',
 });
-const imagenesGaleria = import.meta.glob<ImageMetadata>(
-  '/src/content/galeria/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}',
-  { eager: true, import: 'default' },
-);
-const jsonGaleria = import.meta.glob<unknown>('/src/content/galeria/galeria.json', {
+const jsonGaleria = import.meta.glob<unknown>('/src/content/galeria.json', {
   eager: true,
   import: 'default',
 });
@@ -49,79 +45,55 @@ function avisar(mensaje: string) {
   console.warn(`\x1b[33m[aalcuadrado]\x1b[0m ${mensaje}`);
 }
 
-/** `/src/content/productos/mi-producto/foto.jpg` → `{ carpeta: 'mi-producto', archivo: 'foto.jpg' }` */
-function partesRuta(ruta: string) {
-  const partes = ruta.split('/');
-  return { carpeta: partes.at(-2) ?? '', archivo: partes.at(-1) ?? '' };
+/** `/src/content/productos/mi-producto.json` → `mi-producto` */
+function slugDeRuta(ruta: string): string {
+  return (ruta.split('/').at(-1) ?? '').replace(/\.json$/, '');
 }
 
-function datosPorDefecto(slug: string): ProductoJson {
-  return {
-    nombre: textoDesdeArchivo(slug),
-    coleccion: 'otros',
-    colores: [],
-    descripcion: '',
-    disponible: true,
-    destacado: false,
-  };
+function archivoDeRuta(ruta: string): string {
+  return ruta.split('/').at(-1) ?? '';
 }
 
-function leerProductoJson(slug: string): ProductoJson {
-  const crudo = jsonProductos[`/src/content/productos/${slug}/producto.json`];
-  if (crudo === undefined) {
-    avisar(`"${slug}" no tiene producto.json: se muestra sin precio y en la colección "otros".`);
-    return datosPorDefecto(slug);
-  }
-  const resultado = ProductoJsonSchema.safeParse(crudo);
-  if (!resultado.success) {
-    const detalle = resultado.error.issues.map((i) => `${i.path.join('.') || '(raíz)'}: ${i.message}`).join('; ');
-    avisar(`"${slug}/producto.json" tiene errores (${detalle}). Se muestra con datos básicos.`);
-    return datosPorDefecto(slug);
-  }
-  return resultado.data;
+function buscarImagen(ruta: string, contexto: string): Imagen | undefined {
+  const imagen = imagenes[normalizarRuta(ruta)];
+  if (!imagen) avisar(`${contexto}: no encontré la foto "${ruta}"; se omite.`);
+  return imagen;
 }
 
 function construirProductos(): Producto<Imagen>[] {
-  const fotosPorCarpeta = new Map<string, { archivo: string; src: Imagen }[]>();
-  for (const [ruta, src] of Object.entries(imagenesProductos)) {
-    const { carpeta, archivo } = partesRuta(ruta);
-    const lista = fotosPorCarpeta.get(carpeta) ?? [];
-    lista.push({ archivo, src });
-    fotosPorCarpeta.set(carpeta, lista);
-  }
-
-  // Carpetas con producto.json pero sin fotos: se excluyen.
-  for (const ruta of Object.keys(jsonProductos)) {
-    const { carpeta } = partesRuta(ruta);
-    if (!fotosPorCarpeta.has(carpeta)) {
-      avisar(`"${carpeta}" no tiene fotos: no aparece en el catálogo.`);
-    }
-  }
-
   const productos: Producto<Imagen>[] = [];
-  for (const [slug, fotosCrudas] of fotosPorCarpeta) {
-    const datos = leerProductoJson(slug);
-    const porArchivo = new Map(fotosCrudas.map((f) => [f.archivo, f.src]));
-    const archivos = ordenarArchivos([...porArchivo.keys()]);
 
-    const fotos: FotoProducto<Imagen>[] = archivos.map((archivo, i) => {
-      const color = colorDeArchivo(archivo, datos.colores);
-      const descripcionFoto = esPortada(archivo) ? '' : textoDesdeArchivo(archivo).toLowerCase();
-      return {
-        src: porArchivo.get(archivo)!,
-        archivo,
-        colorId: color?.id,
-        esPortada: i === 0,
-        alt: [`Aretes ${datos.nombre}`, color ? `en color ${color.nombre.toLowerCase()}` : descripcionFoto]
-          .filter(Boolean)
-          .join(', '),
-      };
-    });
+  for (const [ruta, crudo] of Object.entries(jsonProductos)) {
+    const slug = slugDeRuta(ruta);
+    const resultado = ProductoJsonSchema.safeParse(crudo);
+    if (!resultado.success) {
+      const detalle = resultado.error.issues.map((i) => `${i.path.join('.') || '(raíz)'}: ${i.message}`).join('; ');
+      avisar(`"productos/${slug}.json" tiene errores (${detalle}); no aparece en el catálogo.`);
+      continue;
+    }
+    const datos = resultado.data;
+    const colores = datos.colores.map((c) => ({ id: idDeColor(c), nombre: c.nombre, hex: c.hex }));
 
-    for (const color of datos.colores) {
-      if (!fotos.some((f) => f.colorId === color.id)) {
-        avisar(`"${slug}": el color "${color.id}" no tiene fotos (nómbralas ${color.id}-01.jpg, ${color.id}-02.jpg…).`);
-      }
+    const fotos: FotoProducto<Imagen>[] = [];
+    for (const { ruta: rutaFoto, colorId } of fotosDelProducto(datos)) {
+      const src = buscarImagen(rutaFoto, `"${slug}"`);
+      if (!src) continue;
+      const color = colores.find((c) => c.id === colorId);
+      fotos.push({
+        src,
+        archivo: archivoDeRuta(rutaFoto),
+        colorId,
+        esPortada: fotos.length === 0,
+        alt: [`Aretes ${datos.nombre}`, color && `en color ${color.nombre.toLowerCase()}`].filter(Boolean).join(', '),
+      });
+    }
+
+    if (fotos.length === 0) {
+      avisar(`"${slug}" no tiene fotos: no aparece en el catálogo.`);
+      continue;
+    }
+    for (const color of colores) {
+      if (!fotos.some((f) => f.colorId === color.id)) avisar(`"${slug}": el color "${color.nombre}" no tiene fotos.`);
     }
 
     productos.push({
@@ -130,7 +102,7 @@ function construirProductos(): Producto<Imagen>[] {
       coleccion: datos.coleccion,
       // De momento todos los diseños listos cuestan lo mismo (ver sitio.precios).
       precio: sitio.precios.listo,
-      colores: datos.colores,
+      colores,
       descripcion: datos.descripcion,
       etiqueta: datos.etiqueta,
       disponible: datos.disponible,
@@ -151,19 +123,21 @@ function construirProductos(): Producto<Imagen>[] {
 
 function construirGaleria(): FotoGaleria<Imagen>[] {
   const crudo = Object.values(jsonGaleria)[0];
-  let textos: Record<string, { alt: string }> = {};
-  if (crudo !== undefined) {
-    const resultado = GaleriaJsonSchema.safeParse(crudo);
-    if (resultado.success) textos = resultado.data;
-    else avisar('galeria/galeria.json tiene errores; se usan los nombres de archivo como texto alternativo.');
+  if (crudo === undefined) return [];
+  const resultado = GaleriaJsonSchema.safeParse(crudo);
+  if (!resultado.success) {
+    avisar('galeria.json tiene errores; la sección "Así se ven" no se muestra.');
+    return [];
   }
 
-  return Object.entries(imagenesGaleria)
-    .map(([ruta, src]) => {
-      const { archivo } = partesRuta(ruta);
-      return { src, archivo, alt: textos[archivo]?.alt ?? textoDesdeArchivo(archivo) };
-    })
-    .sort((a, b) => ordenNatural(a.archivo, b.archivo));
+  const fotos: FotoGaleria<Imagen>[] = [];
+  for (const { imagen, alt } of resultado.data.fotos) {
+    const src = buscarImagen(imagen, 'Galería');
+    if (!src) continue;
+    const archivo = archivoDeRuta(imagen);
+    fotos.push({ src, archivo, alt: alt ?? textoDesdeArchivo(archivo) });
+  }
+  return fotos;
 }
 
 export class CatalogoArchivosLocales implements CatalogoRepository<Imagen> {

@@ -1,0 +1,32 @@
+{
+  "nombre": "Papel picado calaverita",
+  "coleccion": "dia-de-muertos",
+  "descripcion": "Una calaverita calada como el papel picado de las ofrendas, pero que no se rompe ni se arruga.",
+  "etiqueta": "Temporada",
+  "disponible": true,
+  "destacado": true,
+  "orden": 1,
+  "portada": "/src/content/fotos/productos/papel-picado-calaverita-portada.jpg",
+  "colores": [
+    {
+      "nombre": "Morado",
+      "hex": "#3B2A9B",
+      "fotos": [
+        "/src/content/fotos/productos/papel-picado-calaverita-morado-01.jpg",
+        "/src/content/fotos/productos/papel-picado-calaverita-morado-02.jpg"
+      ]
+    },
+    {
+      "nombre": "Rosa mexicano",
+      "hex": "#E4007C",
+      "fotos": [
+        "/src/content/fotos/productos/papel-picado-calaverita-rosa-01.jpg",
+        "/src/content/fotos/productos/papel-picado-calaverita-rosa-02.jpg"
+      ]
+    }
+  ],
+  "otrasFotos": [
+    "/src/content/fotos/productos/papel-picado-calaverita-puesto-01.jpg"
+  ],
+  "precio": 120
+}

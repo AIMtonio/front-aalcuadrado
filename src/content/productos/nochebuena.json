@@ -1,0 +1,19 @@
+{
+  "nombre": "Nochebuena",
+  "coleccion": "navidad",
+  "descripcion": "La flor de diciembre, en capas que se notan cuando les da la luz.",
+  "disponible": false,
+  "destacado": false,
+  "orden": 3,
+  "colores": [
+    {
+      "nombre": "Rojo",
+      "hex": "#C8102E",
+      "fotos": [
+        "/src/content/fotos/productos/nochebuena-rojo-01.jpg",
+        "/src/content/fotos/productos/nochebuena-rojo-02.jpg"
+      ]
+    }
+  ],
+  "precio": 130
+}

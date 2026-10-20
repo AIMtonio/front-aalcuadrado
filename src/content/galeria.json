@@ -1,0 +1,28 @@
+{
+  "fotos": [
+    {
+      "imagen": "/src/content/fotos/galeria/aretes-en-caja.jpg",
+      "alt": "Aretes en su caja"
+    },
+    {
+      "imagen": "/src/content/fotos/galeria/aretes-puestos.jpg",
+      "alt": "Aretes puestos"
+    },
+    {
+      "imagen": "/src/content/fotos/galeria/detalle-de-capas.jpg",
+      "alt": "Detalle de las capas de impresión"
+    },
+    {
+      "imagen": "/src/content/fotos/galeria/mesa-de-impresion.jpg",
+      "alt": "Mesa de impresión 3D"
+    },
+    {
+      "imagen": "/src/content/fotos/galeria/pedido-listo-para-enviar.jpg",
+      "alt": "Pedido listo para enviar"
+    },
+    {
+      "imagen": "/src/content/fotos/galeria/puesto-en-el-mercado.jpg",
+      "alt": "Puesto de aalcuadrado en el mercado"
+    }
+  ]
+}

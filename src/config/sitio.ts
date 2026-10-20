@@ -15,12 +15,12 @@ export const sitio = {
   descripcion:
     'Aretes y accesorios con motivos mexicanos, diseñados e impresos en 3D. Ligeros, resistentes y en los colores que elijas. Pide por WhatsApp.',
   /** Ciudad que aparece en "Hecho en …". */
-  ciudad: '[Ciudad de México]',
+  ciudad: 'Mérida',
 
   whatsapp: {
     /**
      * Número con lada de país y sin espacios ni signos.
-     * Ejemplo para un celular de CDMX: 5215512345678.
+     * Para un celular de México: 52 + los 10 dígitos.
      */
     numero: '525510727166',
   },

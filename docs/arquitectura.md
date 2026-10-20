@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee las carpetas de productos, optimiza las fotos y genera un solo `index.html` con todo lo necesario. No hay servidor, base de datos ni API.
+Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera un solo `index.html` con todo lo necesario. No hay servidor, base de datos ni API.
 
 ```mermaid
 flowchart TB
@@ -27,7 +27,8 @@ flowchart TB
   end
 
   CFG["Configuración<br/>src/config/sitio.ts"]
-  FS[("src/content/<br/>productos/ y galeria/")]
+  FS[("src/content/<br/>productos/*.json, galeria.json y fotos/")]
+  CMS["Pages CMS<br/>(commits a main)"]
   BE[("Backend<br/>(futuro)")]
 
   P --> REPO
@@ -36,6 +37,7 @@ flowchart TB
   REPO -.implementa.-> LOCAL
   REPO -.implementa.-> API
   LOCAL --> FS
+  CMS --> FS
   API -.-> BE
   LOCAL --> Z
   API -.-> Z
@@ -48,7 +50,7 @@ flowchart TB
 | Capa | Carpeta | Qué hace | Regla |
 | --- | --- | --- | --- |
 | Dominio | `src/domain/` | Esquemas Zod (`ProductoJsonSchema`, `ColorSchema`…) y tipos (`Producto`, `FotoProducto`, `Color`, `Coleccion`). | Solo depende de `zod`. Es el contrato que respetará el backend. |
-| Datos | `src/data/` | `CatalogoRepository` (interfaz) y `CatalogoArchivosLocales` (lee carpetas con `import.meta.glob`). `src/data/index.ts` decide qué implementación se usa. | Páginas y componentes **nunca** leen archivos: siempre pasan por `catalogo`. |
+| Datos | `src/data/` | `CatalogoRepository` (interfaz) y `CatalogoArchivosLocales` (lee los JSON y las fotos de `src/content/` con `import.meta.glob`). `src/data/index.ts` decide qué implementación se usa. | Páginas y componentes **nunca** leen archivos: siempre pasan por `catalogo`. |
 | Servicios | `src/services/pedidos.ts` | `CanalPedidos` arma los enlaces de compra. Hoy, `CanalWhatsApp`. | Sin APIs de Astro: se usa igual en el servidor y en el navegador. |
 | Configuración | `src/config/sitio.ts` | WhatsApp, redes, temporada, precios, preguntas frecuentes. | Todo lo que cambia seguido vive aquí. |
 | Presentación | `src/pages/`, `src/components/`, `src/scripts/` | Componentes `.astro` y TypeScript nativo para la interactividad. | Sin React, Vue ni Tailwind. |
@@ -64,8 +66,11 @@ flowchart TB
 **¿Por qué estático por ahora?**
 El catálogo cambia pocas veces por semana y las compras se cierran por WhatsApp. Un sitio estático no tiene costos, no se cae y no necesita mantenimiento de servidor. Cada cambio en el repositorio vuelve a publicar el sitio.
 
+**¿Por qué Pages CMS?**
+Da un panel para subir fotos y editar productos desde el navegador sin agregar servidor ni base de datos: cada cambio es un commit en `main`, que el GitHub Action publica. Su configuración está en `.pages.yml`. Cada producto es un JSON plano en `src/content/productos/` y las fotos van a `src/content/fotos/`. Los JSON guardan la ruta de cada foto agrupada por color, así que el color de una foto ya no depende de su nombre.
+
 **¿Por qué `import.meta.glob` y no `getCollection`?**
-Las fotos viven sueltas dentro de cada carpeta y se identifican por su nombre (`portada`, `morado-01`…). `import.meta.glob` las importa como `ImageMetadata` sin declarar cada una, y la validación de `producto.json` usa los mismos esquemas Zod del dominio. El script `npm run productos:validar` reutiliza esos esquemas.
+`import.meta.glob` importa todas las fotos de `src/content/fotos/` como `ImageMetadata`, y el catálogo cruza esas rutas con las que guardan los JSON. Los JSON se validan con los mismos esquemas Zod del dominio, que también aceptan los valores vacíos (`""` o `null`) que escribe Pages CMS. El script `npm run productos:validar` reutiliza esos esquemas y corre antes de cada publicación.
 
 **Visor y enlaces profundos.**
 Un único `<dialog>` sirve a todos los productos y a la galería. Al compilar se generan las versiones del visor (WebP en 640–1920 px y miniaturas) y viajan como JSON en la página. El estado vive en la URL (`#producto/<slug>/<n>`), así que un enlace compartido abre la misma foto y el botón "atrás" cierra el visor.

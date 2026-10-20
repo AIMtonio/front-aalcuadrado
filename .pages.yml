@@ -1,0 +1,148 @@
+# Configuración de Pages CMS (https://pagescms.org).
+# Define el panel donde se editan productos y fotos desde el navegador.
+# Cada vez que guardas, Pages CMS hace un commit en el repositorio y el
+# GitHub Action vuelve a publicar el sitio.
+#
+# Las rutas que se guardan en los JSON (`output`) son las mismas que usa
+# el sitio para encontrar las fotos: no las cambies sin cambiar también
+# src/data/CatalogoArchivosLocales.ts.
+
+media:
+  - name: productos
+    label: Fotos de productos
+    input: src/content/fotos/productos
+    output: /src/content/fotos/productos
+    extensions: [jpg, jpeg, png, webp, avif]
+    rename: safe
+  - name: galeria
+    label: Fotos de ambiente
+    input: src/content/fotos/galeria
+    output: /src/content/fotos/galeria
+    extensions: [jpg, jpeg, png, webp, avif]
+    rename: safe
+
+content:
+  - name: productos
+    label: Productos
+    type: collection
+    path: src/content/productos
+    format: json
+    filename:
+      template: "{nombre}.json"
+      field: create
+    view:
+      fields: [nombre, coleccion, disponible, destacado]
+      primary: nombre
+      sort: [orden, nombre]
+      default:
+        sort: orden
+        order: asc
+    fields:
+      - name: nombre
+        label: Nombre
+        type: string
+        required: true
+      - name: coleccion
+        label: Colección
+        type: select
+        required: true
+        options:
+          values:
+            - name: dia-de-muertos
+              label: Día de Muertos
+            - name: mexicanos
+              label: Mexicanos
+            - name: patrios
+              label: Patrios
+            - name: navidad
+              label: Navidad
+            - name: otros
+              label: Otros
+      - name: descripcion
+        label: Descripción
+        description: Una o dos líneas (máximo 240 caracteres).
+        type: text
+      - name: portada
+        label: Foto principal
+        description: Opcional. Si no hay, se usa la primera foto del primer color.
+        type: image
+        options:
+          media: productos
+      - name: colores
+        label: Colores
+        description: Cada color con sus propias fotos. El primero es el que se ve primero.
+        type: object
+        list: true
+        fields:
+          - name: nombre
+            label: Nombre del color
+            description: Como lo verá el cliente, por ejemplo "Rosa mexicano".
+            type: string
+            required: true
+          - name: hex
+            label: Color (hexadecimal)
+            description: Para pintar el cuadrito del color, por ejemplo #E4007C.
+            type: string
+            required: true
+            pattern:
+              regex: "^#([0-9a-fA-F]{3}){1,2}$"
+              message: Usa un color hexadecimal, por ejemplo #3B2A9B
+          - name: fotos
+            label: Fotos de este color
+            type: image
+            options:
+              media: productos
+              multiple: true
+      - name: otrasFotos
+        label: Otras fotos
+        description: Fotos que no son de un color en particular (puestos, en la caja…).
+        type: image
+        options:
+          media: productos
+          multiple: true
+      - name: etiqueta
+        label: Etiqueta
+        type: select
+        options:
+          values: [Nuevo, Temporada, Más vendido]
+      - name: disponible
+        label: Disponible
+        description: Apágalo para marcarlo como agotado.
+        type: boolean
+        default: true
+      - name: destacado
+        label: Destacado
+        description: Su foto sale en la portada del sitio.
+        type: boolean
+        default: false
+      - name: orden
+        label: Orden en el catálogo
+        description: 1 va primero.
+        type: number
+      - name: precio
+        label: Precio
+        description: Por ahora no se usa; todos los diseños listos cuestan lo de src/config/sitio.ts.
+        type: number
+
+  - name: galeria
+    label: Galería "Así se ven"
+    type: file
+    path: src/content/galeria.json
+    format: json
+    fields:
+      - name: fotos
+        label: Fotos
+        description: Salen en este orden.
+        type: object
+        list: true
+        fields:
+          - name: imagen
+            label: Foto
+            type: image
+            required: true
+            options:
+              media: galeria
+          - name: alt
+            label: Descripción
+            description: Qué se ve en la foto, para quien no puede verla.
+            type: string

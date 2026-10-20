@@ -1,8 +1,9 @@
 /**
  * Contrato de datos del catálogo.
  *
- * Estos esquemas son la fuente de verdad: hoy validan los `producto.json`
- * de las carpetas y mañana validarán las respuestas del backend.
+ * Estos esquemas son la fuente de verdad: hoy validan los JSON de
+ * `src/content/` (escritos a mano o desde Pages CMS) y mañana validarán
+ * las respuestas del backend.
  * Este archivo solo depende de `zod` para poder usarse también desde
  * los scripts de Node (por ejemplo, `npm run productos:validar`).
  */
@@ -16,31 +17,54 @@ export const ColeccionIdSchema = z.enum(COLECCIONES);
 
 export const ETIQUETAS = ['Nuevo', 'Temporada', 'Más vendido'] as const;
 
+export const REGEX_IMAGEN = /\.(jpe?g|png|webp|avif)$/i;
+const REGEX_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/*
+ * Pages CMS escribe "" o null cuando un campo opcional se deja vacío.
+ * Estos ayudantes los tratan como si el campo no existiera.
+ */
+const vacio = (v: unknown) => (v === '' || v === null ? undefined : v);
+const opcional = <T extends z.ZodType>(esquema: T) => z.preprocess(vacio, esquema.optional());
+const lista = <T extends z.ZodType>(esquema: T) => z.preprocess((v) => vacio(v) ?? [], z.array(esquema));
+
+/** Ruta de una foto dentro del repositorio, tal como la escribe Pages CMS: `/src/content/fotos/…/foto.jpg`. */
+export const RutaImagenSchema = z
+  .string()
+  .regex(/^\/?src\/content\/fotos\//, 'La foto debe estar dentro de src/content/fotos/')
+  .regex(REGEX_IMAGEN, 'Usa una foto .jpg, .png, .webp o .avif');
+
 export const ColorSchema = z.object({
-  /** Identificador corto en minúsculas; también es el prefijo de las fotos (`morado-01.jpg`). */
-  id: z
-    .string()
-    .min(1)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Usa minúsculas, números y guiones, sin espacios ni acentos'),
+  /** Identificador corto en minúsculas; se usa en los enlaces y para elegir el color. */
+  id: z.string().min(1).regex(REGEX_ID, 'Usa minúsculas, números y guiones, sin espacios ni acentos'),
   nombre: z.string().min(1),
   hex: z.string().regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/, 'Usa un color hexadecimal, por ejemplo #3B2A9B'),
 });
 export type Color = z.infer<typeof ColorSchema>;
 
-/** Lo que se escribe en `producto.json`. */
-export const ProductoJsonSchema = z
-  .object({
-    nombre: z.string().min(1),
-    coleccion: ColeccionIdSchema,
-    precio: z.number().positive().optional(),
-    colores: z.array(ColorSchema).default([]),
-    descripcion: z.string().max(240).default(''),
-    etiqueta: z.enum(ETIQUETAS).optional(),
-    disponible: z.boolean().default(true),
-    destacado: z.boolean().default(false),
-    orden: z.number().optional(),
-  })
-  .strict();
+/** Un color tal como se escribe en el JSON: el `id` es opcional (sale del nombre) y trae sus fotos. */
+export const ColorJsonSchema = ColorSchema.extend({
+  id: opcional(ColorSchema.shape.id),
+  fotos: lista(RutaImagenSchema),
+});
+export type ColorJson = z.infer<typeof ColorJsonSchema>;
+
+/** Lo que se escribe en `src/content/productos/<slug>.json` (a mano o desde Pages CMS). */
+export const ProductoJsonSchema = z.object({
+  nombre: z.string().min(1),
+  coleccion: ColeccionIdSchema,
+  precio: opcional(z.number().positive()),
+  /** Foto principal. Si no hay, se usa la primera del primer color. */
+  portada: opcional(RutaImagenSchema),
+  colores: lista(ColorJsonSchema),
+  /** Fotos que no son de un color en particular (en el puesto, en la caja…). */
+  otrasFotos: lista(RutaImagenSchema),
+  descripcion: z.preprocess((v) => vacio(v) ?? '', z.string().max(240)),
+  etiqueta: opcional(z.enum(ETIQUETAS)),
+  disponible: z.preprocess(vacio, z.boolean().default(true)),
+  destacado: z.preprocess(vacio, z.boolean().default(false)),
+  orden: opcional(z.number()),
+});
 export type ProductoJson = z.infer<typeof ProductoJsonSchema>;
 
 /**
@@ -52,7 +76,7 @@ export interface FotoProducto<TImagen = unknown> {
   src: TImagen;
   alt: string;
   archivo: string;
-  /** Id del color al que pertenece, si el nombre del archivo empieza con él. */
+  /** Id del color al que pertenece, si se subió dentro de un color. */
   colorId?: string;
   esPortada: boolean;
 }
@@ -84,12 +108,14 @@ export interface FotoGaleria<TImagen = unknown> {
   archivo: string;
 }
 
-export const GaleriaJsonSchema = z.record(z.string(), z.object({ alt: z.string().min(1) }).strict());
+/** Lo que se escribe en `src/content/galeria.json`. Las fotos salen en este orden. */
+export const GaleriaJsonSchema = z.object({
+  fotos: lista(z.object({ imagen: RutaImagenSchema, alt: opcional(z.string().min(1)) })),
+});
 
 /* ---------- Utilidades puras compartidas por la app y los scripts ---------- */
 
 export const EXTENSIONES_IMAGEN = ['jpg', 'jpeg', 'png', 'webp', 'avif'] as const;
-export const REGEX_IMAGEN = /\.(jpe?g|png|webp|avif)$/i;
 
 const comparador = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
 
@@ -102,30 +128,50 @@ export function sinExtension(archivo: string): string {
   return archivo.replace(/\.[^.]+$/, '');
 }
 
-export function esPortada(archivo: string): boolean {
-  return /^portada$/i.test(sinExtension(archivo));
-}
-
 /** `aretes-en-caja.jpg` → "Aretes en caja". */
 export function textoDesdeArchivo(archivo: string): string {
   const texto = sinExtension(archivo).replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** Devuelve el color cuyo id es prefijo del nombre del archivo (`morado-01.jpg` → morado). */
-export function colorDeArchivo(archivo: string, colores: Color[]): Color | undefined {
-  const base = sinExtension(archivo).toLowerCase();
-  // Primero los ids más largos, para que `rosa-palido` gane sobre `rosa`.
-  return [...colores]
-    .sort((a, b) => b.id.length - a.id.length)
-    .find((c) => base === c.id || base.startsWith(`${c.id}-`) || base.startsWith(`${c.id}_`));
+/** "Rosa mexicano" → `rosa-mexicano`. Se usa para el `id` de los colores que no lo traen. */
+export function slugificar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
-/** Ordena archivos: portada primero y después orden natural. */
-export function ordenarArchivos(archivos: string[]): string[] {
-  return [...archivos].sort((a, b) => {
-    const pa = esPortada(a) ? 0 : 1;
-    const pb = esPortada(b) ? 0 : 1;
-    return pa - pb || ordenNatural(a, b);
-  });
+/** `src/content/fotos/a.jpg` → `/src/content/fotos/a.jpg` (las claves de `import.meta.glob` empiezan con `/`). */
+export function normalizarRuta(ruta: string): string {
+  return ruta.startsWith('/') ? ruta : `/${ruta}`;
+}
+
+/** Id del color: el que trae el JSON o, si no, el nombre en minúsculas y con guiones. */
+export function idDeColor(color: Pick<ColorJson, 'id' | 'nombre'>): string {
+  return color.id ?? slugificar(color.nombre);
+}
+
+/** Ruta de cada foto del producto con el color al que pertenece, sin repetir. */
+export interface FotoJson {
+  ruta: string;
+  colorId?: string;
+}
+
+/** Orden de las fotos: portada, luego las de cada color (en el orden de los colores) y al final las demás. */
+export function fotosDelProducto(datos: ProductoJson): FotoJson[] {
+  const fotos: FotoJson[] = [];
+  const vistas = new Set<string>();
+  const agregar = (ruta: string, colorId?: string) => {
+    const r = normalizarRuta(ruta);
+    if (vistas.has(r)) return;
+    vistas.add(r);
+    fotos.push({ ruta: r, colorId });
+  };
+  if (datos.portada) agregar(datos.portada);
+  for (const color of datos.colores) for (const ruta of color.fotos) agregar(ruta, idDeColor(color));
+  for (const ruta of datos.otrasFotos) agregar(ruta);
+  return fotos;
 }

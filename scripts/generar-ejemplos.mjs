@@ -1,7 +1,7 @@
 /**
  * Genera fotos de EJEMPLO para que el sitio funcione desde el primer `npm run dev`.
- * Reemplázalas por fotos reales: borra la carpeta del producto de ejemplo
- * o sustituye las imágenes conservando los nombres.
+ * Reemplázalas por fotos reales desde Pages CMS, o sustituye las imágenes
+ * de src/content/fotos/ conservando los nombres.
  *
  * Uso: npm run ejemplos:generar   (no sobrescribe archivos existentes; usa --forzar para hacerlo)
  */
@@ -15,13 +15,15 @@ const forzar = process.argv.includes('--forzar');
 const productos = [
   {
     slug: 'papel-picado-calaverita',
+    /** Prefijo de las fotos de cada color, en el mismo orden que `json.colores`. */
+    colores: ['morado', 'rosa'],
     json: {
       nombre: 'Papel picado calaverita',
       coleccion: 'dia-de-muertos',
       precio: 120,
       colores: [
-        { id: 'morado', nombre: 'Morado', hex: '#3B2A9B' },
-        { id: 'rosa', nombre: 'Rosa mexicano', hex: '#E4007C' },
+        { nombre: 'Morado', hex: '#3B2A9B' },
+        { nombre: 'Rosa mexicano', hex: '#E4007C' },
       ],
       descripcion: 'Una calaverita calada como el papel picado de las ofrendas, pero que no se rompe ni se arruga.',
       etiqueta: 'Temporada',
@@ -40,13 +42,14 @@ const productos = [
   },
   {
     slug: 'corazon-talavera',
+    colores: ['azul', 'amarillo'],
     json: {
       nombre: 'Corazón de talavera',
       coleccion: 'mexicanos',
       precio: 150,
       colores: [
-        { id: 'azul', nombre: 'Azul cobalto', hex: '#1F3FAE' },
-        { id: 'amarillo', nombre: 'Amarillo', hex: '#F2B705' },
+        { nombre: 'Azul cobalto', hex: '#1F3FAE' },
+        { nombre: 'Amarillo', hex: '#F2B705' },
       ],
       descripcion: 'El trazo de la talavera poblana en un corazón ligero, para usar todos los días.',
       etiqueta: 'Nuevo',
@@ -62,11 +65,12 @@ const productos = [
   },
   {
     slug: 'nochebuena',
+    colores: ['rojo'],
     json: {
       nombre: 'Nochebuena',
       coleccion: 'navidad',
       precio: 130,
-      colores: [{ id: 'rojo', nombre: 'Rojo', hex: '#C8102E' }],
+      colores: [{ nombre: 'Rojo', hex: '#C8102E' }],
       descripcion: 'La flor de diciembre, en capas que se notan cuando les da la luz.',
       disponible: false,
       destacado: false,
@@ -80,12 +84,12 @@ const productos = [
 ];
 
 const galeria = [
-  ['aretes-en-caja', 1200, 1500, '#3B2A9B'],
-  ['puesto-en-el-mercado', 1600, 1067, '#17142B'],
-  ['mesa-de-impresion', 1200, 1200, '#5C5878'],
-  ['aretes-puestos', 1200, 1600, '#E4007C'],
-  ['detalle-de-capas', 1600, 1200, '#2C1F78'],
-  ['pedido-listo-para-enviar', 1200, 1500, '#FF9F1C'],
+  ['aretes-en-caja', 1200, 1500, '#3B2A9B', 'Aretes en su caja'],
+  ['puesto-en-el-mercado', 1600, 1067, '#17142B', 'Puesto de aalcuadrado en el mercado'],
+  ['mesa-de-impresion', 1200, 1200, '#5C5878', 'Mesa de impresión 3D'],
+  ['aretes-puestos', 1200, 1600, '#E4007C', 'Aretes puestos'],
+  ['detalle-de-capas', 1600, 1200, '#2C1F78', 'Detalle de las capas de impresión'],
+  ['pedido-listo-para-enviar', 1200, 1500, '#FF9F1C', 'Pedido listo para enviar'],
 ];
 
 function escapar(texto) {
@@ -127,21 +131,41 @@ async function escribirImagen(ruta, opciones) {
 }
 
 let creadas = 0;
+const carpetaFotos = join(raiz, 'fotos', 'productos');
+mkdirSync(carpetaFotos, { recursive: true });
+mkdirSync(join(raiz, 'productos'), { recursive: true });
 for (const p of productos) {
-  const carpeta = join(raiz, 'productos', p.slug);
-  mkdirSync(carpeta, { recursive: true });
-  const rutaJson = join(carpeta, 'producto.json');
-  if (!existsSync(rutaJson) || forzar) writeFileSync(rutaJson, `${JSON.stringify(p.json, null, 2)}\n`);
+  const ruta = (nombre) => `/src/content/fotos/productos/${p.slug}-${nombre}.jpg`;
+  const deColor = (color) => p.fotos.filter(([nombre]) => nombre.startsWith(`${color}-`)).map(([nombre]) => ruta(nombre));
+  const colores = p.json.colores.map((c, i) => ({ ...c, fotos: deColor(p.colores[i]) }));
+  const otrasFotos = p.fotos
+    .map(([nombre]) => nombre)
+    .filter((nombre) => nombre !== 'portada' && !p.colores.some((c) => nombre.startsWith(`${c}-`)))
+    .map(ruta);
+  const json = {
+    ...p.json,
+    ...(p.fotos.some(([nombre]) => nombre === 'portada') && { portada: ruta('portada') }),
+    colores,
+    ...(otrasFotos.length && { otrasFotos }),
+  };
+  const rutaJson = join(raiz, 'productos', `${p.slug}.json`);
+  if (!existsSync(rutaJson) || forzar) writeFileSync(rutaJson, `${JSON.stringify(json, null, 2)}\n`);
   for (const [nombre, fondo, subtitulo] of p.fotos) {
-    if (await escribirImagen(join(carpeta, `${nombre}.jpg`), { ancho: 1200, alto: 1500, fondo, titulo: p.json.nombre, subtitulo })) creadas++;
+    const archivo = join(carpetaFotos, `${p.slug}-${nombre}.jpg`);
+    if (await escribirImagen(archivo, { ancho: 1200, alto: 1500, fondo, titulo: p.json.nombre, subtitulo })) creadas++;
   }
 }
 
-const carpetaGaleria = join(raiz, 'galeria');
+const carpetaGaleria = join(raiz, 'fotos', 'galeria');
 mkdirSync(carpetaGaleria, { recursive: true });
 for (const [nombre, ancho, alto, fondo] of galeria) {
   const titulo = nombre.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
   if (await escribirImagen(join(carpetaGaleria, `${nombre}.jpg`), { ancho, alto, fondo, titulo, subtitulo: 'Así se ven' })) creadas++;
+}
+const rutaGaleria = join(raiz, 'galeria.json');
+if (!existsSync(rutaGaleria) || forzar) {
+  const fotos = galeria.map(([nombre, , , , alt]) => ({ imagen: `/src/content/fotos/galeria/${nombre}.jpg`, alt }));
+  writeFileSync(rutaGaleria, `${JSON.stringify({ fotos }, null, 2)}\n`);
 }
 
 console.log(`Listo: ${creadas} imágenes de ejemplo creadas en src/content/.`);

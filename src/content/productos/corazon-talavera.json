@@ -1,0 +1,27 @@
+{
+  "nombre": "Corazón de talavera",
+  "coleccion": "mexicanos",
+  "descripcion": "El trazo de la talavera poblana en un corazón ligero, para usar todos los días.",
+  "etiqueta": "Nuevo",
+  "disponible": true,
+  "destacado": false,
+  "orden": 2,
+  "colores": [
+    {
+      "nombre": "Azul cobalto",
+      "hex": "#1F3FAE",
+      "fotos": [
+        "/src/content/fotos/productos/corazon-talavera-azul-01.jpg",
+        "/src/content/fotos/productos/corazon-talavera-azul-02.jpg"
+      ]
+    },
+    {
+      "nombre": "Amarillo",
+      "hex": "#F2B705",
+      "fotos": [
+        "/src/content/fotos/productos/corazon-talavera-amarillo-01.jpg"
+      ]
+    }
+  ],
+  "precio": 150
+}

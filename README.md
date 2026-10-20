@@ -2,7 +2,7 @@
 
 Landing page de **aalcuadrado** (se lee "A al cuadrado"): aretes y accesorios con motivos mexicanos, diseñados e impresos en 3D.
 
-Está hecha con [Astro](https://astro.build) y es un sitio estático: no hay base de datos. Los productos son **carpetas con fotos**, y todas las compras se hacen por WhatsApp.
+Está hecha con [Astro](https://astro.build) y es un sitio estático: no hay base de datos. Los productos y sus fotos se guardan en este repositorio y se editan desde **[Pages CMS](https://pagescms.org)**, un panel en el navegador. Todas las compras se hacen por WhatsApp.
 
 ---
 
@@ -21,7 +21,7 @@ Otros comandos útiles:
 
 | Comando | Para qué sirve |
 | --- | --- |
-| `npm run productos:validar` | Revisa las carpetas de productos y te dice qué falta. |
+| `npm run productos:validar` | Revisa los productos y sus fotos y te dice qué falta. |
 | `npm run build` | Genera el sitio final en la carpeta `dist/`. |
 | `npm run preview` | Muestra el sitio ya compilado, igual que como quedará publicado. |
 | `npm run check` | Revisa que el código no tenga errores. |
@@ -30,50 +30,61 @@ Otros comandos útiles:
 
 ---
 
-## 2. Agregar un producto nuevo
+## 2. Productos y fotos desde Pages CMS
 
-Cada producto es una carpeta dentro de `src/content/productos/`.
+Pages CMS es un panel gratuito que edita los archivos de este repositorio. No necesita servidor: cada vez que guardas, hace un commit en GitHub y el sitio se vuelve a publicar solo en uno o dos minutos. Funciona desde el celular.
 
-### Paso 1. Crea la carpeta
+### Configurarlo (una sola vez)
 
-El nombre de la carpeta aparece en el enlace del producto, así que usa **minúsculas, sin acentos ni espacios** (usa guiones):
+1. Asegúrate de que el archivo `.pages.yml` ya esté en la rama `main` en GitHub.
+2. Entra a [app.pagescms.org](https://app.pagescms.org) y elige **Sign in with GitHub**.
+3. Cuando lo pida, instala la app de Pages CMS en tu cuenta y dale acceso **solo** al repositorio `front-aalcuadrado`.
+4. Abre el repositorio y elige la rama `main`. Verás dos secciones: **Productos** y **Galería "Así se ven"**.
 
-```
-src/content/productos/calavera-catrina/
-```
+### Agregar un producto
 
-### Paso 2. Copia las fotos y nómbralas así
+1. En **Productos**, toca **Add an entry**.
+2. Escribe el **nombre**. De ahí sale el nombre del archivo y el enlace del producto (por ejemplo, "Calavera catrina" → `calavera-catrina`), así que piénsalo bien: no se cambia después.
+3. Elige la **colección** y escribe una **descripción** corta.
+4. En **Colores**, agrega cada color con su nombre (como lo verá el cliente), su color en hexadecimal (`#E4007C`) y sus fotos. Las fotos se suben ahí mismo.
+5. Si tienes fotos que no son de un color (en el puesto, en la caja…), súbelas en **Otras fotos**. La **foto principal** es opcional; si no la pones, se usa la primera del primer color.
+6. Revisa **Disponible** y **Destacado**, y guarda con **Save**.
 
-| Nombre del archivo | Qué significa |
-| --- | --- |
-| `portada.jpg` | Foto principal (opcional). Si no hay, se usa la primera. |
-| `morado-01.jpg`, `morado-02.jpg` | Fotos del color **morado**. El inicio del nombre debe ser igual al `id` del color en `producto.json`. |
-| `rosa-01.jpg` | Fotos del color **rosa**. |
-| `puesto-01.jpg`, `en-caja-01.jpg` | Fotos generales (sin color). |
+Recomendaciones para las fotos:
 
-- Formatos: `.jpg`, `.jpeg`, `.png`, `.webp` o `.avif`.
-- Usa números con dos dígitos (`01`, `02`… `10`) para que el orden sea claro.
-- Las fotos verticales (proporción 4:5, por ejemplo 1200 × 1500 px) son las que mejor se ven.
-- No te preocupes por el peso: el sitio las optimiza solo.
+- Formatos: `.jpg`, `.jpeg`, `.png`, `.webp` o `.avif`. Las fotos HEIC del iPhone no sirven: compártelas como JPG o cambia la cámara a "Más compatible".
+- Las verticales (4:5, por ejemplo 1200 × 1500 px) son las que mejor se ven.
+- Súbelas de menos de 1 MB cada una. El sitio las optimiza solo, pero así el repositorio no crece de más.
+- Usa nombres distintos para cada foto (por ejemplo `catrina-morado-1.jpg`). Si subes otra foto con el mismo nombre, puede sustituir a la anterior.
 
-### Paso 3. Crea `producto.json`
+### Galería "Así se ven"
 
-En la misma carpeta, crea un archivo `producto.json`:
+En **Galería "Así se ven"** agrega las fotos de ambiente y escribe en **Descripción** qué se ve en cada una (sirve para quien no puede ver la imagen). Salen en el orden de la lista.
+
+### Si prefieres editar a mano
+
+Pages CMS solo escribe archivos normales, así que también puedes editarlos tú:
+
+- Las fotos van en `src/content/fotos/productos/` y `src/content/fotos/galeria/`.
+- Cada producto es un archivo `src/content/productos/<nombre-del-producto>.json`:
 
 ```json
 {
   "nombre": "Calavera catrina",
   "coleccion": "dia-de-muertos",
-  "precio": 140,
-  "colores": [
-    { "id": "morado", "nombre": "Morado", "hex": "#3B2A9B" },
-    { "id": "rosa", "nombre": "Rosa mexicano", "hex": "#E4007C" }
-  ],
   "descripcion": "La catrina de Posada, en un arete que casi no pesa.",
   "etiqueta": "Nuevo",
   "disponible": true,
   "destacado": false,
-  "orden": 4
+  "orden": 4,
+  "colores": [
+    {
+      "nombre": "Morado",
+      "hex": "#3B2A9B",
+      "fotos": ["/src/content/fotos/productos/catrina-morado-1.jpg"]
+    }
+  ],
+  "otrasFotos": ["/src/content/fotos/productos/catrina-en-caja.jpg"]
 }
 ```
 
@@ -81,37 +92,27 @@ En la misma carpeta, crea un archivo `producto.json`:
 | --- | --- | --- |
 | `nombre` | Sí | Nombre del producto. |
 | `coleccion` | Sí | Una de estas: `dia-de-muertos`, `mexicanos`, `patrios`, `navidad`, `otros`. |
-| `precio` | No | Número en pesos, sin signo `$`. Si no lo pones, aparece "Pregunta por WhatsApp". |
-| `colores` | No | Lista de colores. `id` en minúsculas y sin espacios (es el inicio del nombre de las fotos), `nombre` como lo verá el cliente y `hex` para pintar el cuadrito. |
-| `descripcion` | No | Una o dos líneas. |
+| `colores` | No | Cada color con `nombre`, `hex` y la lista de sus `fotos`. |
+| `portada` | No | Foto principal. Si no hay, se usa la primera del primer color. |
+| `otrasFotos` | No | Fotos que no son de un color. |
+| `descripcion` | No | Una o dos líneas (máximo 240 caracteres). |
 | `etiqueta` | No | `"Nuevo"`, `"Temporada"` o `"Más vendido"`. |
 | `disponible` | No | `true` (por defecto) o `false` para marcarlo como agotado. |
 | `destacado` | No | `true` para que su foto salga en la portada del sitio. |
 | `orden` | No | Número para ordenar el catálogo (1 va primero). |
+| `precio` | No | Por ahora no se usa: todos los diseños listos cuestan lo que diga `src/config/sitio.ts`. |
 
-> Si una carpeta no tiene `producto.json`, el producto se muestra igual: con el nombre de la carpeta, en la colección "otros" y sin precio.
-
-### Paso 4. Revisa que todo esté bien
+Después revisa que todo esté bien:
 
 ```bash
 npm run productos:validar
 ```
 
-Te dirá si falta algo: carpetas sin fotos, errores en el JSON o colores sin fotos.
-
-### Fotos de ambiente ("Así se ven")
-
-Copia las fotos a `src/content/galeria/`. El texto alternativo sale del nombre del archivo (`aretes-en-caja.jpg` → "Aretes en caja"). Si quieres escribirlo tú, crea `src/content/galeria/galeria.json`:
-
-```json
-{
-  "aretes-en-caja.jpg": { "alt": "Tres pares de aretes de papel picado dentro de su caja" }
-}
-```
+Te dirá si falta algo: productos sin fotos, fotos que no existen, errores en el JSON o fotos que no usa nadie. Esta revisión también corre antes de cada publicación: si algo está mal, el sitio no se publica y lo verás en la pestaña **Actions** de GitHub.
 
 ### Quitar los productos de ejemplo
 
-Los tres productos que vienen (`papel-picado-calaverita`, `corazon-talavera`, `nochebuena`) y las fotos de `galeria/` son **de ejemplo** (dicen "Foto de ejemplo"). Reemplaza las imágenes por fotos reales con los mismos nombres, o borra la carpeta completa del producto.
+Los tres productos que vienen (`papel-picado-calaverita`, `corazon-talavera`, `nochebuena`) y las fotos de la galería son **de ejemplo** (dicen "Foto de ejemplo"). Bórralos desde Pages CMS o cambia sus fotos por fotos reales. Las fotos que ya no uses puedes borrarlas desde **Media** en Pages CMS.
 
 ---
 
@@ -119,11 +120,18 @@ Los tres productos que vienen (`papel-picado-calaverita`, `corazon-talavera`, `n
 
 ### Marcar un producto como agotado
 
-En su `producto.json`, cambia `"disponible": true` por `"disponible": false`. Se mostrará con la etiqueta "Agotado" y el botón "Avísame por WhatsApp".
+En Pages CMS, abre el producto y apaga **Disponible**. Se mostrará con la etiqueta "Agotado" y el botón "Avísame por WhatsApp".
 
-### Cambiar un precio
+### Cambiar los precios
 
-En su `producto.json`, cambia el número de `"precio"`.
+Por ahora los precios son fijos y están en `src/config/sitio.ts`:
+
+```ts
+precios: {
+  listo: 40,          // cualquier diseño del catálogo
+  personalizado: 60,  // diseños personalizados
+},
+```
 
 ### Activar o desactivar la temporada
 
@@ -145,13 +153,13 @@ En `src/config/sitio.ts`:
 
 ```ts
 whatsapp: {
-  numero: '5215512345678',
+  numero: '525510727166',
 },
 ```
 
-Escríbelo **con lada de país y sin espacios, signos ni guiones**. Para un celular de México: `521` + los 10 dígitos.
+Escríbelo **con lada de país y sin espacios, signos ni guiones**. Para un celular de México: `52` + los 10 dígitos.
 
-En el mismo archivo están las redes sociales, el costo de personalizar, el mínimo de mayoreo y las preguntas frecuentes.
+En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de mayoreo y las preguntas frecuentes.
 
 ---
 
@@ -192,15 +200,18 @@ Si usas tu propio dominio (por ejemplo `aalcuadrado.mx`), recuerda poner esa dir
 ```
 src/
   content/
-    productos/<producto>/    ← fotos + producto.json de cada producto
-    galeria/                 ← fotos de ambiente
+    productos/<producto>.json ← datos de cada producto (los edita Pages CMS)
+    galeria.json             ← fotos de ambiente y su descripción
+    fotos/productos/         ← fotos de los productos
+    fotos/galeria/           ← fotos de ambiente
   config/sitio.ts            ← WhatsApp, redes, temporada, precios, preguntas
   domain/                    ← tipos y reglas de los datos (esquemas Zod)
-  data/                      ← lectura del catálogo (hoy: carpetas; mañana: API)
+  data/                      ← lectura del catálogo (hoy: archivos JSON; mañana: API)
   services/pedidos.ts        ← arma los enlaces de WhatsApp
   components/                ← secciones de la página
   scripts/                   ← interactividad (visor, tarjetas, colores)
   styles/                    ← colores, tipografía y estilos base
 scripts/                     ← validar productos, generar ejemplos e imagen OG
 docs/arquitectura.md         ← decisiones técnicas y cómo crecer a un backend
+.pages.yml                   ← campos del panel de Pages CMS
 ```

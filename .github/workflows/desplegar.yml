@@ -29,13 +29,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Descargar productos y fotos de la API
-        run: npm run api:sincronizar
-        env:
-          API_URL: ${{ secrets.API_URL }}
-          API_USUARIO: ${{ secrets.API_USUARIO }}
-          API_PASSWORD: ${{ secrets.API_PASSWORD }}
-
       - name: Revisar productos
         run: npm run productos:validar
 
@@ -45,12 +38,16 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
 
+      # `npm run build` descarga primero los productos y fotos de la API (script prebuild).
       - name: Compilar
         run: npm run build
         env:
           # Dirección y subcarpeta donde vive el sitio (por ejemplo /front-aalcuadrado).
           SITE_URL: ${{ steps.pages.outputs.origin }}
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          API_URL: ${{ secrets.API_URL }}
+          API_USUARIO: ${{ secrets.API_USUARIO }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
 
       - uses: actions/upload-pages-artifact@v3
         with:

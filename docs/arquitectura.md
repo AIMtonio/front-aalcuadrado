@@ -81,7 +81,9 @@ Un único `<dialog>` sirve a todos los productos y a la galería. Al compilar se
 - **Con la API**, los productos son los de la API. Las fotos de cada producto son las que la API tenga de él; si todavía no tiene, se usan las del JSON del repositorio con el mismo slug. Igual con la galería.
 - **Sin la API** (sin `API_URL`), todo sale de `src/content/` como antes.
 
-En GitHub Actions las credenciales vienen de *secrets* y el paso falla (sin publicar) si la API no responde. Después de cambiar productos o fotos en el panel hay que volver a ejecutar el workflow. Contrato completo: `docs/integracion-front.md` del backend.
+El script `prebuild` lo ejecuta antes de cada `npm run build`, así que corre solo en Vercel, en GitHub Actions y en local. Las credenciales vienen de las variables del proyecto (Vercel) o de los *secrets* (GitHub Actions); si la API no responde, el build falla y no se publica nada.
+
+Después de cambiar productos o fotos hay que compilar de nuevo. Con Vercel, el panel tiene un botón **Publicar sitio** que llama al Deploy Hook del proyecto (la API guarda su URL en `DEPLOY_HOOK_URL`). Con GitHub Pages, se vuelve a ejecutar el workflow. Contrato completo: `docs/integracion-front.md` del backend.
 
 ## Cómo migrar a un backend
 

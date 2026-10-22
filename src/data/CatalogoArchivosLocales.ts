@@ -2,19 +2,23 @@ import type { ImageMetadata } from 'astro';
 import { sitio } from '@/config/sitio';
 import {
   COLECCIONES,
-  FotosApiJsonSchema,
+  CatalogoApiJsonSchema,
   GaleriaJsonSchema,
   NOMBRES_COLECCION,
   ProductoJsonSchema,
+  ETIQUETAS,
   fotosDelProducto,
   idDeColor,
   normalizarRuta,
   ordenNatural,
   textoDesdeArchivo,
+  type CatalogoApi,
   type Coleccion,
-  type FotoApi,
+  type Color,
+  type ColeccionId,
   type FotoGaleria,
   type FotoProducto,
+  type FotoJson,
   type Producto,
 } from '@/domain/catalogo';
 import type { CatalogoRepository } from './CatalogoRepository';
@@ -38,7 +42,8 @@ const jsonGaleria = import.meta.glob<unknown>('/src/content/galeria.json', {
   import: 'default',
 });
 
-const jsonFotosApi = import.meta.glob<unknown>('/src/content/fotos-api.json', {
+// Lo descarga `npm run api:sincronizar`. Si no existe, el glob regresa {} y no hay error.
+const jsonCatalogoApi = import.meta.glob<unknown>('/src/content/catalogo-api.json', {
   eager: true,
   import: 'default',
 });
@@ -52,19 +57,21 @@ function avisar(mensaje: string) {
   console.warn(`\x1b[33m[aalcuadrado]\x1b[0m ${mensaje}`);
 }
 
-/** Fotos subidas desde el panel de la API, si se corrió `npm run fotos:sincronizar`. */
-function leerFotosApi(): FotoApi[] {
-  const crudo = Object.values(jsonFotosApi)[0];
-  if (crudo === undefined) return [];
-  const resultado = FotosApiJsonSchema.safeParse(crudo);
+/** Productos y fotos de la API, si se corrió `npm run api:sincronizar`; `null` si no. */
+function leerCatalogoApi(): CatalogoApi | null {
+  const crudo = Object.values(jsonCatalogoApi)[0];
+  if (crudo === undefined) return null;
+  const resultado = CatalogoApiJsonSchema.safeParse(crudo);
   if (!resultado.success) {
-    avisar('fotos-api.json tiene errores; se usan solo las fotos del repositorio.');
-    return [];
+    const detalle = resultado.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+    avisar(`catalogo-api.json tiene errores (${detalle}); se usan solo los productos del repositorio.`);
+    return null;
   }
-  return resultado.data.fotos;
+  return resultado.data;
 }
 
-const fotosApi = leerFotosApi();
+const catalogoApi = leerCatalogoApi();
+const fotosApi = catalogoApi?.fotos ?? [];
 
 /** `/src/content/productos/mi-producto.json` → `mi-producto` */
 function slugDeRuta(ruta: string): string {
@@ -81,21 +88,24 @@ function buscarImagen(ruta: string, contexto: string): Imagen | undefined {
   return imagen;
 }
 
-function construirProductos(): Producto<Imagen>[] {
-  const productos: Producto<Imagen>[] = [];
+/** Lo que hace falta para armar un producto, venga de la API o de un JSON del repositorio. */
+interface FuenteProducto {
+  slug: string;
+  nombre: string;
+  coleccion: ColeccionId;
+  descripcion: string;
+  etiqueta?: (typeof ETIQUETAS)[number];
+  disponible: boolean;
+  destacado: boolean;
+  orden?: number;
+  colores: Color[];
+  /** Fotos del JSON del repositorio: se usan si la API no tiene fotos de este producto. */
+  fotosRepositorio: FotoJson[];
+}
 
-  // Fotos de la API que no se pueden ligar a ningún producto: no aparecen en el sitio.
-  const slugs = new Set(Object.keys(jsonProductos).map(slugDeRuta));
-  for (const f of fotosApi) {
-    if (f.categoria !== 'productos') continue;
-    const archivo = archivoDeRuta(f.imagen);
-    if (!f.producto) {
-      avisar(`La foto "${archivo}" de la API no tiene producto: asígnale uno para que aparezca.`);
-    } else if (!slugs.has(f.producto)) {
-      avisar(`La foto "${archivo}" de la API es del producto "${f.producto}", que no existe en src/content/productos/.`);
-    }
-  }
-
+/** Los productos de `src/content/productos/*.json` que son válidos, por slug. */
+function productosDelRepositorio(): Map<string, FuenteProducto> {
+  const fuentes = new Map<string, FuenteProducto>();
   for (const [ruta, crudo] of Object.entries(jsonProductos)) {
     const slug = slugDeRuta(ruta);
     const resultado = ProductoJsonSchema.safeParse(crudo);
@@ -105,30 +115,82 @@ function construirProductos(): Producto<Imagen>[] {
       continue;
     }
     const datos = resultado.data;
-    const colores = datos.colores.map((c) => ({ id: idDeColor(c), nombre: c.nombre, hex: c.hex }));
+    fuentes.set(slug, {
+      slug,
+      nombre: datos.nombre,
+      coleccion: datos.coleccion,
+      descripcion: datos.descripcion,
+      etiqueta: datos.etiqueta,
+      disponible: datos.disponible,
+      destacado: datos.destacado,
+      orden: datos.orden,
+      colores: datos.colores.map((c) => ({ id: idDeColor(c), nombre: c.nombre, hex: c.hex })),
+      fotosRepositorio: fotosDelProducto(datos),
+    });
+  }
+  return fuentes;
+}
 
-    // Si la API tiene fotos de este producto, reemplazan a las de su JSON.
+/**
+ * Con la API, los productos son los de la API; un JSON del repositorio con el mismo
+ * slug solo presta sus fotos mientras la API no tenga fotos de ese producto.
+ * Sin la API, los productos son los JSON del repositorio.
+ */
+function fuentesDeProductos(): FuenteProducto[] {
+  const repositorio = productosDelRepositorio();
+  if (!catalogoApi) return [...repositorio.values()];
+  return catalogoApi.productos.map((p) => ({
+    slug: p.slug,
+    nombre: p.nombre,
+    coleccion: p.coleccion,
+    descripcion: p.descripcion,
+    etiqueta: p.etiqueta ?? undefined,
+    disponible: p.disponible,
+    destacado: p.destacado,
+    orden: p.orden ?? undefined,
+    colores: p.colores,
+    fotosRepositorio: repositorio.get(p.slug)?.fotosRepositorio ?? [],
+  }));
+}
+
+function construirProductos(): Producto<Imagen>[] {
+  const productos: Producto<Imagen>[] = [];
+  const fuentes = fuentesDeProductos();
+
+  // Fotos de la API que no se pueden ligar a ningún producto: no aparecen en el sitio.
+  const slugs = new Set(fuentes.map((f) => f.slug));
+  for (const f of fotosApi) {
+    if (f.categoria !== 'productos') continue;
+    const archivo = archivoDeRuta(f.imagen);
+    if (!f.producto) {
+      avisar(`La foto "${archivo}" de la API no tiene producto: asígnale uno para que aparezca.`);
+    } else if (!slugs.has(f.producto)) {
+      avisar(`La foto "${archivo}" de la API es del producto "${f.producto}", que no existe en el catálogo.`);
+    }
+  }
+
+  for (const datos of fuentes) {
+    const { slug, colores } = datos;
+
+    // Si la API tiene fotos de este producto, reemplazan a las del repositorio.
     const deLaApi = fotosApi.filter((f) => f.categoria === 'productos' && f.producto === slug);
-    const origen = deLaApi.length > 0
-      ? deLaApi.map((f) => {
-          const colorId = f.color ?? undefined;
-          if (colorId && !colores.some((c) => c.id === colorId)) {
-            avisar(`"${slug}": la API trae una foto del color "${colorId}", que no está en su JSON; se muestra sin color.`);
-            return { ruta: f.imagen, colorId: undefined, alt: f.alt ?? undefined };
-          }
-          return { ruta: f.imagen, colorId, alt: f.alt ?? undefined };
-        })
-      : fotosDelProducto(datos).map((f) => ({ ...f, alt: undefined }));
+    const origen =
+      deLaApi.length > 0
+        ? deLaApi.map((f) => ({ ruta: f.imagen, colorId: f.color ?? undefined, alt: f.alt ?? undefined }))
+        : datos.fotosRepositorio.map((f) => ({ ...f, alt: undefined }));
 
     const fotos: FotoProducto<Imagen>[] = [];
-    for (const { ruta: rutaFoto, colorId, alt } of origen) {
+    for (const { ruta: rutaFoto, colorId: colorPedido, alt } of origen) {
       const src = buscarImagen(rutaFoto, `"${slug}"`);
       if (!src) continue;
-      const color = colores.find((c) => c.id === colorId);
+      const color = colores.find((c) => c.id === colorPedido);
+      if (colorPedido && !color) {
+        avisar(`"${slug}": una foto es del color "${colorPedido}", que el producto no tiene; se muestra sin color.`);
+      }
       fotos.push({
         src,
         archivo: archivoDeRuta(rutaFoto),
-        colorId,
+        colorId: color?.id,
         esPortada: fotos.length === 0,
         alt: alt ?? [`Aretes ${datos.nombre}`, color && `en color ${color.nombre.toLowerCase()}`].filter(Boolean).join(', '),
       });

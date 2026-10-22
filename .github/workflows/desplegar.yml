@@ -29,8 +29,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Descargar fotos de la API
-        run: npm run fotos:sincronizar
+      - name: Descargar productos y fotos de la API
+        run: npm run api:sincronizar
         env:
           API_URL: ${{ secrets.API_URL }}
           API_USUARIO: ${{ secrets.API_USUARIO }}

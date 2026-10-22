@@ -113,6 +113,39 @@ export const GaleriaJsonSchema = z.object({
   fotos: lista(z.object({ imagen: RutaImagenSchema, alt: opcional(z.string().min(1)) })),
 });
 
+/** Un producto tal como lo devuelve la API (back-aalcuadrado). Los colores ya traen su `id`. */
+export const ProductoApiSchema = z.object({
+  slug: z.string().regex(REGEX_ID),
+  nombre: z.string().min(1),
+  coleccion: ColeccionIdSchema,
+  descripcion: z.string().max(240),
+  etiqueta: z.enum(ETIQUETAS).nullable(),
+  precio: z.number().positive().nullable(),
+  disponible: z.boolean(),
+  destacado: z.boolean(),
+  orden: z.number().nullable(),
+  colores: z.array(ColorSchema),
+});
+export type ProductoApi = z.infer<typeof ProductoApiSchema>;
+
+/** Una foto subida desde el panel de la API, ya descargada a `src/content/fotos/api/`. */
+export const FotoApiSchema = z.object({
+  imagen: RutaImagenSchema,
+  categoria: z.enum(['productos', 'galeria']),
+  producto: z.string().nullable(),
+  color: z.string().nullable(),
+  alt: z.string().nullable(),
+  orden: z.number(),
+});
+export type FotoApi = z.infer<typeof FotoApiSchema>;
+
+/** Lo que escribe `npm run api:sincronizar` en `src/content/catalogo-api.json`. Las fotos ya vienen en orden. */
+export const CatalogoApiJsonSchema = z.object({
+  productos: z.array(ProductoApiSchema),
+  fotos: z.array(FotoApiSchema),
+});
+export type CatalogoApi = z.infer<typeof CatalogoApiJsonSchema>;
+
 /* ---------- Utilidades puras compartidas por la app y los scripts ---------- */
 
 export const EXTENSIONES_IMAGEN = ['jpg', 'jpeg', 'png', 'webp', 'avif'] as const;

@@ -14,3 +14,7 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+
+# Catálogo descargado de la API (npm run api:sincronizar)
+src/content/fotos/api/
+src/content/catalogo-api.json

@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera un solo `index.html` con todo lo necesario. No hay servidor, base de datos ni API.
+Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera un solo `index.html` con todo lo necesario. El navegador no llama a ninguna API: los productos y las fotos que se administran desde el panel de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) se descargan al compilar (ver *Productos y fotos desde la API*).
 
 ```mermaid
 flowchart TB
@@ -74,6 +74,16 @@ Da un panel para subir fotos y editar productos desde el navegador sin agregar s
 
 **Visor y enlaces profundos.**
 Un único `<dialog>` sirve a todos los productos y a la galería. Al compilar se generan las versiones del visor (WebP en 640–1920 px y miniaturas) y viajan como JSON en la página. El estado vive en la URL (`#producto/<slug>/<n>`), así que un enlace compartido abre la misma foto y el botón "atrás" cierra el visor.
+
+**Productos y fotos desde la API.**
+`npm run api:sincronizar` (`scripts/sincronizar-api.mjs`) inicia sesión en [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) con `API_URL`, `API_USUARIO` y `API_PASSWORD`, descarga las fotos a `src/content/fotos/api/` y escribe los productos y los datos de las fotos en `src/content/catalogo-api.json` (ambos fuera de git). Como las fotos quedan dentro de `src/content/fotos/`, `import.meta.glob` las importa y Astro las optimiza igual que las del repositorio. `CatalogoArchivosLocales` valida el archivo con `CatalogoApiJsonSchema`:
+
+- **Con la API**, los productos son los de la API. Las fotos de cada producto son las que la API tenga de él; si todavía no tiene, se usan las del JSON del repositorio con el mismo slug. Igual con la galería.
+- **Sin la API** (sin `API_URL`), todo sale de `src/content/` como antes.
+
+El script `prebuild` lo ejecuta antes de cada `npm run build`, así que corre solo en Vercel, en GitHub Actions y en local. Las credenciales vienen de las variables del proyecto (Vercel) o de los *secrets* (GitHub Actions); si la API no responde, el build falla y no se publica nada.
+
+Después de cambiar productos o fotos hay que compilar de nuevo. Con Vercel, el panel tiene un botón **Publicar sitio** que llama al Deploy Hook del proyecto (la API guarda su URL en `DEPLOY_HOOK_URL`). Con GitHub Pages, se vuelve a ejecutar el workflow. Contrato completo: `docs/integracion-front.md` del backend.
 
 ## Cómo migrar a un backend
 

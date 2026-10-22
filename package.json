@@ -8,13 +8,15 @@
   },
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "npm run api:sincronizar",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check && tsc --noEmit",
     "astro": "astro",
     "productos:validar": "node scripts/validar-productos.ts",
     "ejemplos:generar": "node scripts/generar-ejemplos.mjs",
-    "og:generar": "node scripts/generar-og.mjs"
+    "og:generar": "node scripts/generar-og.mjs",
+    "api:sincronizar": "node --env-file-if-exists=.env scripts/sincronizar-api.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

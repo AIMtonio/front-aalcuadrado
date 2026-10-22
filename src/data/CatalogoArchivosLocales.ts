@@ -238,7 +238,8 @@ function construirGaleria(): FotoGaleria<Imagen>[] {
       const src = buscarImagen(imagen, 'Galería');
       if (!src) continue;
       const archivo = archivoDeRuta(imagen);
-      fotos.push({ src, archivo, alt: alt ?? textoDesdeArchivo(archivo) });
+      // La API agrega al nombre un sufijo aleatorio (`aretes-puestos-1a2b3c4d.jpg`); no va en el texto.
+      fotos.push({ src, archivo, alt: alt ?? textoDesdeArchivo(archivo.replace(/-[0-9a-f]{8}(?=\.[^.]+$)/, '')) });
     }
     return fotos;
   }

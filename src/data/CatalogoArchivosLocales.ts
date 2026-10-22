@@ -84,6 +84,18 @@ function buscarImagen(ruta: string, contexto: string): Imagen | undefined {
 function construirProductos(): Producto<Imagen>[] {
   const productos: Producto<Imagen>[] = [];
 
+  // Fotos de la API que no se pueden ligar a ningún producto: no aparecen en el sitio.
+  const slugs = new Set(Object.keys(jsonProductos).map(slugDeRuta));
+  for (const f of fotosApi) {
+    if (f.categoria !== 'productos') continue;
+    const archivo = archivoDeRuta(f.imagen);
+    if (!f.producto) {
+      avisar(`La foto "${archivo}" de la API no tiene producto: asígnale uno para que aparezca.`);
+    } else if (!slugs.has(f.producto)) {
+      avisar(`La foto "${archivo}" de la API es del producto "${f.producto}", que no existe en src/content/productos/.`);
+    }
+  }
+
   for (const [ruta, crudo] of Object.entries(jsonProductos)) {
     const slug = slugDeRuta(ruta);
     const resultado = ProductoJsonSchema.safeParse(crudo);

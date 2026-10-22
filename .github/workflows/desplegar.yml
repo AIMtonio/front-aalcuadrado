@@ -29,6 +29,13 @@ jobs:
 
       - run: npm ci
 
+      - name: Descargar fotos de la API
+        run: npm run fotos:sincronizar
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          API_USUARIO: ${{ secrets.API_USUARIO }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
+
       - name: Revisar productos
         run: npm run productos:validar
 

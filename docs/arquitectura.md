@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera un solo `index.html` con todo lo necesario. No hay servidor, base de datos ni API.
+Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera un solo `index.html` con todo lo necesario. El navegador no llama a ninguna API: las fotos que se suben desde el panel de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) se descargan al compilar (ver *Fotos desde la API*).
 
 ```mermaid
 flowchart TB
@@ -74,6 +74,9 @@ Da un panel para subir fotos y editar productos desde el navegador sin agregar s
 
 **Visor y enlaces profundos.**
 Un único `<dialog>` sirve a todos los productos y a la galería. Al compilar se generan las versiones del visor (WebP en 640–1920 px y miniaturas) y viajan como JSON en la página. El estado vive en la URL (`#producto/<slug>/<n>`), así que un enlace compartido abre la misma foto y el botón "atrás" cierra el visor.
+
+**Fotos desde la API.**
+`npm run fotos:sincronizar` (`scripts/sincronizar-fotos.mjs`) inicia sesión en la API con `API_URL`, `API_USUARIO` y `API_PASSWORD`, descarga las fotos a `src/content/fotos/api/` y escribe `src/content/fotos-api.json` (ambos fuera de git). Como quedan dentro de `src/content/fotos/`, `import.meta.glob` las importa y Astro las optimiza igual que las del repositorio. `CatalogoArchivosLocales` valida el manifiesto con `FotosApiJsonSchema`: si la API trae fotos de un producto (por su slug) o de la galería, reemplazan a las del JSON; si no, se usan las del repositorio. Sin `API_URL` el script no hace nada. En GitHub Actions las credenciales vienen de *secrets* y el paso falla (sin publicar) si la API no responde. Después de subir fotos hay que volver a ejecutar el workflow. Contrato completo: `docs/integracion-front.md` del backend.
 
 ## Cómo migrar a un backend
 

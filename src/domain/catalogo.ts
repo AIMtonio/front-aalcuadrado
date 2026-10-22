@@ -113,6 +113,21 @@ export const GaleriaJsonSchema = z.object({
   fotos: lista(z.object({ imagen: RutaImagenSchema, alt: opcional(z.string().min(1)) })),
 });
 
+/** Lo que escribe `npm run fotos:sincronizar` en `src/content/fotos-api.json`. Ya viene en orden. */
+export const FotosApiJsonSchema = z.object({
+  fotos: z.array(
+    z.object({
+      imagen: RutaImagenSchema,
+      categoria: z.enum(['productos', 'galeria']),
+      producto: z.string().nullable(),
+      color: z.string().nullable(),
+      alt: z.string().nullable(),
+      orden: z.number(),
+    }),
+  ),
+});
+export type FotoApi = z.infer<typeof FotosApiJsonSchema>['fotos'][number];
+
 /* ---------- Utilidades puras compartidas por la app y los scripts ---------- */
 
 export const EXTENSIONES_IMAGEN = ['jpg', 'jpeg', 'png', 'webp', 'avif'] as const;

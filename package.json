@@ -14,7 +14,8 @@
     "astro": "astro",
     "productos:validar": "node scripts/validar-productos.ts",
     "ejemplos:generar": "node scripts/generar-ejemplos.mjs",
-    "og:generar": "node scripts/generar-og.mjs"
+    "og:generar": "node scripts/generar-og.mjs",
+    "fotos:sincronizar": "node --env-file-if-exists=.env scripts/sincronizar-fotos.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

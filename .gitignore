@@ -14,3 +14,7 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+
+# Fotos descargadas de la API (npm run fotos:sincronizar)
+src/content/fotos/api/
+src/content/fotos-api.json

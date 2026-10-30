@@ -38,7 +38,7 @@ export const sitio = {
     coleccion: 'dia-de-muertos' as const,
     titulo: 'Temporada de Día de Muertos',
     texto: 'Llévate 2 pares por',
-    precio: 70, // [200]
+    precio: 40, // [200]
   },
 
   /**
@@ -47,9 +47,9 @@ export const sitio = {
    */
   precios: {
     /** Cualquier diseño ya listo del catálogo. */
-    listo: 40,
+    listo: 20,
     /** Diseño personalizado (colores, iniciales, nombre o evento). */
-    personalizado: 60,
+    personalizado: 50,
   },
 
   mayoreo: {

@@ -181,6 +181,7 @@ function iniciarDisenador(seccion: HTMLElement) {
       if (!estado.disponible) return;
       actualizarRestantes(estado.restantesHoy);
       seccion.hidden = false;
+      document.querySelectorAll<HTMLElement>('[data-enlace-disena]').forEach((enlace) => (enlace.hidden = false));
     })
     .catch((e: unknown) => {
       console.info('[aalcuadrado] El diseñador no está disponible:', e);

@@ -22,6 +22,8 @@ export interface CanalPedidos {
   /** Enlace para pedir (o pedir aviso de) un producto concreto. */
   pedirProducto(pedido: PedidoProducto): string;
   personalizado(): string;
+  /** Pedir un diseño hecho en el diseñador del sitio; la imagen la manda el cliente en el chat. */
+  disenoIA(idea: string): string;
   mayoreo(): string;
   /** Contacto general (encabezado, botón flotante, pie de página). */
   general(): string;
@@ -45,6 +47,12 @@ export class CanalWhatsApp implements CanalPedidos {
 
   personalizado() {
     return this.#enlace('Hola, quiero unos aretes personalizados. Mi idea es: ');
+  }
+
+  disenoIA(idea: string) {
+    return this.#enlace(
+      `Hola, diseñé unos aretes en su página y me gustaría pedirlos. Mi idea fue: "${idea}". Les mando la imagen.`,
+    );
   }
 
   mayoreo() {

@@ -32,7 +32,7 @@ Otros comandos útiles:
 
 ## 2. Productos y fotos desde Pages CMS
 
-Pages CMS es un panel gratuito que edita los archivos de este repositorio. No necesita servidor: cada vez que guardas, hace un commit en GitHub y el sitio se vuelve a publicar solo en uno o dos minutos. Funciona desde el celular.
+Pages CMS es un panel gratuito que edita los archivos de este repositorio. No necesita servidor: cada vez que guardas, hace un commit en GitHub y Vercel vuelve a publicar el sitio solo en uno o dos minutos. Funciona desde el celular.
 
 ### Configurarlo (una sola vez)
 
@@ -108,7 +108,7 @@ Después revisa que todo esté bien:
 npm run productos:validar
 ```
 
-Te dirá si falta algo: productos sin fotos, fotos que no existen, errores en el JSON o fotos que no usa nadie. Esta revisión también corre antes de cada publicación: si algo está mal, el sitio no se publica y lo verás en la pestaña **Actions** de GitHub.
+Te dirá si falta algo: productos sin fotos, fotos que no existen, errores en el JSON o fotos que no usa nadie. Esta revisión también corre antes de cada publicación en Vercel: si algo está mal, el sitio no se publica y lo verás en **Deployments** del proyecto.
 
 ### Quitar los productos de ejemplo
 
@@ -165,8 +165,8 @@ En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de
 
 La sección no menciona la IA en ningún texto visible. Llama a `POST /api/disenos` de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) desde el navegador del visitante. Para que aparezca:
 
-1. Define `API_URL` al compilar: en `.env` para local (`API_URL=http://localhost:3000`) y en el secret `API_URL` de GitHub para producción. Es la misma variable que usa `npm run api:sincronizar`. **Queda escrita en la página**, así que debe ser la URL pública del túnel, nunca una con credenciales.
-2. En la API, agrega el dominio del sitio a `CORS_ORIGINS` (por ejemplo `https://aimtonio.github.io`).
+1. Define `API_URL` al compilar: en `.env` para local (`API_URL=http://localhost:3000`) y en las variables del proyecto en Vercel para producción. Es la misma variable que usa `npm run api:sincronizar`. **Queda escrita en la página**, así que debe ser la URL pública del túnel, nunca una con credenciales.
+2. En la API, agrega el dominio del sitio a `CORS_ORIGINS` (`https://aalcuadrado.antonioalonso.com.mx` y `https://front-aalcuadrado.vercel.app`).
 3. La sección arranca oculta y se muestra solo si `GET /api/disenos` responde `disponible: true`. Si la API está apagada, sin llave de OpenAI o sin cupo del día, no se ve.
 
 Las palabras que no se aceptan están en `src/domain/palabras-prohibidas.ts`. Agrega o quita palabras ahí, en minúsculas y sin acentos. La revisión es del lado del navegador: evita gastar imágenes en ideas que no se van a aceptar, pero alguien que llame a la API directamente se la puede saltar.
@@ -175,11 +175,7 @@ Las palabras que no se aceptan están en `src/domain/palabras-prohibidas.ts`. Ag
 
 ## 4. Publicar los cambios
 
-El sitio se publica solo en **GitHub Pages** cada vez que subes cambios a la rama `main`.
-
-**Una sola vez:** en GitHub, entra al repositorio → **Settings → Pages** → en **Source** elige **GitHub Actions**.
-
-Después, cada vez que quieras publicar:
+El sitio está en **Vercel** y se publica solo cada vez que hay cambios en la rama `main` (un `git push`, un merge o un cambio desde Pages CMS). En uno o dos minutos queda en `https://aalcuadrado.antonioalonso.com.mx`.
 
 ```bash
 npm run productos:validar   # opcional, para revisar antes
@@ -188,20 +184,16 @@ git commit -m "Agrego calavera catrina"
 git push
 ```
 
-En la pestaña **Actions** de GitHub verás el avance. En uno o dos minutos el sitio queda en `https://aimtonio.github.io/front-aalcuadrado/`.
+Antes de compilar, Vercel corre `npm run api:sincronizar` y `npm run productos:validar` (script `prebuild`). Si la API no responde o un producto tiene errores, el despliegue falla y el sitio se queda como estaba; el detalle se ve en **Deployments** del proyecto en Vercel.
 
-### Alternativa: Netlify o Cloudflare Pages
+Variables del proyecto en Vercel (*Settings → Environment Variables*):
 
-Ambos son gratuitos y no necesitan el GitHub Action:
+| Variable | Para qué |
+| --- | --- |
+| `API_URL`, `API_USUARIO`, `API_PASSWORD` | Descargar productos y fotos de la API, y la URL del diseñador. |
+| `SITE_URL` | Opcional. Si no está, se usa el dominio de producción del proyecto. |
 
-1. Crea una cuenta y conecta este repositorio de GitHub.
-2. Configura:
-   - **Comando de compilación:** `npm run build`
-   - **Carpeta de publicación:** `dist`
-   - **Variable de entorno:** `SITE_URL` con tu dirección final (por ejemplo `https://aalcuadrado.netlify.app` o tu dominio propio). No hace falta `BASE_PATH`.
-3. Cada `git push` a `main` publicará el sitio.
-
-Si usas tu propio dominio (por ejemplo `aalcuadrado.mx`), recuerda poner esa dirección en `SITE_URL`.
+Si cambias algo en el panel de la API, usa su botón **Publicar sitio** (Deploy Hook de Vercel) para volver a compilar sin hacer commit.
 
 ---
 

@@ -127,7 +127,11 @@ if (!existsSync(rutaGaleria)) {
   }
 }
 
-const sinUsar = [...fotosExistentes].filter((f) => !fotosUsadas.has(f)).sort();
+// Las fotos de src/content/fotos/api/ las descarga `npm run api:sincronizar` y las usa
+// catalogo-api.json, no los JSON del repositorio: no cuentan como "sin usar".
+const sinUsar = [...fotosExistentes]
+  .filter((f) => !fotosUsadas.has(f) && !f.startsWith('/src/content/fotos/api/'))
+  .sort();
 if (sinUsar.length) {
   console.log('\nFotos sin usar (src/content/fotos)\n');
   for (const f of sinUsar) aviso(`${f} no aparece en ningún producto ni en la galería.`);

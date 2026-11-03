@@ -1,7 +1,8 @@
 # Configuración de Pages CMS (https://pagescms.org).
 # Define el panel donde se editan productos y fotos desde el navegador.
-# Cada vez que guardas, Pages CMS hace un commit en el repositorio y el
-# GitHub Action vuelve a publicar el sitio.
+# Cada vez que guardas, Pages CMS hace un commit en el repositorio y
+# Vercel vuelve a publicar el sitio.
+# (Pages CMS no tiene que ver con GitHub Pages: solo edita archivos del repositorio.)
 #
 # Las rutas que se guardan en los JSON (`output`) son las mismas que usa
 # el sitio para encontrar las fotos: no las cambies sin cambiar también

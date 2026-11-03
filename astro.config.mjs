@@ -2,16 +2,13 @@
 import { defineConfig, envField, fontProviders } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-// SITE_URL y BASE_PATH los define el GitHub Action al publicar en GitHub Pages.
+// Dirección pública del sitio (enlaces absolutos, sitemap, imagen para compartir).
 // En Vercel, si no se define SITE_URL, se usa el dominio de producción del proyecto.
-// En local no hace falta tocarlos.
 const dominioVercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-const site = process.env.SITE_URL ?? (dominioVercel ? `https://${dominioVercel}` : 'https://aimtonio.github.io');
-const base = process.env.BASE_PATH ?? '/';
+const site = process.env.SITE_URL ?? (dominioVercel ? `https://${dominioVercel}` : 'https://aalcuadrado.antonioalonso.com.mx');
 
 export default defineConfig({
   site,
-  base,
   output: 'static',
   trailingSlash: 'ignore',
   integrations: [sitemap()],

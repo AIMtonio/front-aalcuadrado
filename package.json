@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "npm run api:sincronizar",
+    "prebuild": "npm run api:sincronizar && npm run productos:validar",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check && tsc --noEmit",

@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig, fontProviders } from 'astro/config';
+import { defineConfig, envField, fontProviders } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
 // SITE_URL y BASE_PATH los define el GitHub Action al publicar en GitHub Pages.
@@ -15,6 +15,14 @@ export default defineConfig({
   output: 'static',
   trailingSlash: 'ignore',
   integrations: [sitemap()],
+  env: {
+    schema: {
+      // URL pública de la API (la misma que usa `npm run api:sincronizar`). El diseñador
+      // con IA la llama desde el navegador, así que queda escrita en la página.
+      // Sin ella, la sección "Diseña con IA" no aparece.
+      API_URL: envField.string({ context: 'server', access: 'public', optional: true }),
+    },
+  },
   // Fuentes de Google Fonts, descargadas al compilar y servidas desde el mismo sitio
   // (más rápido y sin bloquear el render).
   fonts: [

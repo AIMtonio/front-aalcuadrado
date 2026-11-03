@@ -161,6 +161,16 @@ Escríbelo **con lada de país y sin espacios, signos ni guiones**. Para un celu
 
 En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de mayoreo y las preguntas frecuentes.
 
+### Diseñador ("Diseña tus aretes")
+
+La sección no menciona la IA en ningún texto visible. Llama a `POST /api/disenos` de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) desde el navegador del visitante. Para que aparezca:
+
+1. Define `API_URL` al compilar: en `.env` para local (`API_URL=http://localhost:3000`) y en el secret `API_URL` de GitHub para producción. Es la misma variable que usa `npm run api:sincronizar`. **Queda escrita en la página**, así que debe ser la URL pública del túnel, nunca una con credenciales.
+2. En la API, agrega el dominio del sitio a `CORS_ORIGINS` (por ejemplo `https://aimtonio.github.io`).
+3. La sección arranca oculta y se muestra solo si `GET /api/disenos` responde `disponible: true`. Si la API está apagada, sin llave de OpenAI o sin cupo del día, no se ve.
+
+Las palabras que no se aceptan están en `src/domain/palabras-prohibidas.ts`. Agrega o quita palabras ahí, en minúsculas y sin acentos. La revisión es del lado del navegador: evita gastar imágenes en ideas que no se van a aceptar, pero alguien que llame a la API directamente se la puede saltar.
+
 ---
 
 ## 4. Publicar los cambios
@@ -208,6 +218,7 @@ src/
   domain/                    ← tipos y reglas de los datos (esquemas Zod)
   data/                      ← lectura del catálogo (hoy: archivos JSON; mañana: API)
   services/pedidos.ts        ← arma los enlaces de WhatsApp
+  services/disenos.ts        ← cliente del diseñador con IA (/api/disenos)
   components/                ← secciones de la página
   scripts/                   ← interactividad (visor, tarjetas, colores)
   styles/                    ← colores, tipografía y estilos base

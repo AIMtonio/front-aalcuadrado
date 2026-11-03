@@ -1,12 +1,18 @@
 ---
+import { API_URL } from 'astro:env/server';
 import Logo from './Logo.astro';
 import Icono from './Icono.astro';
 import { pedidos } from '@/services/pedidos';
+
+// "Diseña" solo existe si hay API; arranca oculto y lo muestra el diseñador
+// cuando la API confirma que está disponible (src/scripts/disenador.ts).
+const hayDisenador = Boolean(API_URL?.trim());
 
 const enlaces = [
   { href: '#catalogo', texto: 'Catálogo' },
   { href: '#galeria', texto: 'Galería' },
   { href: '#personaliza', texto: 'Personaliza' },
+  ...(hayDisenador ? [{ href: '#disena', texto: 'Diseña', oculto: true }] : []),
   { href: '#mayoreo', texto: 'Mayoreo' },
   { href: '#preguntas', texto: 'Preguntas' },
 ];
@@ -33,7 +39,7 @@ const enlaces = [
       <ul role="list">
         {
           enlaces.map((e) => (
-            <li>
+            <li hidden={'oculto' in e} data-enlace-disena={'oculto' in e ? '' : undefined}>
               <a href={e.href}>{e.texto}</a>
             </li>
           ))
@@ -128,6 +134,10 @@ const enlaces = [
       display: none;
     }
 
+    .encabezado__nav .boton {
+      white-space: nowrap;
+    }
+
     .encabezado__nav {
       display: flex;
       align-items: center;
@@ -142,6 +152,17 @@ const enlaces = [
     .encabezado__nav ul a {
       padding: var(--espacio-2) 0;
       font-size: var(--texto-sm);
+    }
+  }
+
+  /* Pantallas medianas: menos aire entre enlaces para que quepan todos en una línea. */
+  @media (min-width: 60rem) and (max-width: 71.99rem) {
+    .encabezado__nav {
+      gap: var(--espacio-4);
+    }
+
+    .encabezado__nav ul {
+      gap: var(--espacio-4);
     }
   }
 </style>

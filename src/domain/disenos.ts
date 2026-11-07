@@ -8,7 +8,7 @@
 import { FRASES, PALABRAS, RAICES } from './palabras-prohibidas.ts';
 
 /** Mismos límites que la API (`src/disenos/prompt.ts` del back). */
-export const IDEA_MIN = 3;
+const IDEA_MIN = 3;
 export const IDEA_MAX = 500;
 
 export type RevisionIdea = { valida: true; texto: string } | { valida: false; motivo: string };
@@ -34,7 +34,7 @@ const sinRepetidas = (palabra: string) => palabra.replace(/(.)\1+/g, '$1');
  * Palabras de la idea, ya normalizadas. Las letras sueltas seguidas se juntan
  * ("p e n e", "p.e.n.e" → "pene").
  */
-export function palabrasDe(texto: string): string[] {
+function palabrasDe(texto: string): string[] {
   const tokens = sinAcentos(texto)
     .replace(/[013457@$!|]/g, (c) => EN_LUGAR_DE_LETRAS[c] ?? c)
     .split(/[^a-zñ]+/)

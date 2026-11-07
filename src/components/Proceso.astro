@@ -1,28 +1,24 @@
 ---
-import { sitio } from '@/config/sitio';
+/** Pasos numerados ("Cómo se hacen", "Cómo funciona"). Cada página manda los suyos. */
+interface Props {
+  id: string;
+  titulo: string;
+  introduccion?: string;
+  pasos: { titulo: string; texto: string }[];
+  /** Párrafo al final, separado por una línea. */
+  firma?: string;
+  alterna?: boolean;
+}
 
-const pasos = [
-  {
-    titulo: 'Diseño digital',
-    texto: 'Cada motivo se dibuja en la computadora: se ajustan los calados y el grosor para que el arete sea ligero y firme.',
-  },
-  {
-    titulo: 'Impresión 3D, capa por capa',
-    texto: 'La impresora levanta la pieza en capas de décimas de milímetro. Así salen detalles que a mano serían imposibles.',
-  },
-  {
-    titulo: 'Armado y revisión a mano',
-    texto: 'Se limpia cada pieza, se le pone el gancho y se revisa par por par antes de llegar a ti.',
-  },
-];
+const { id, titulo, introduccion, pasos, firma, alterna = false } = Astro.props;
 ---
 
-<section class="seccion" id="proceso" aria-labelledby="proceso-titulo">
+<section class:list={['seccion', { 'seccion--alterna': alterna }]} id={id} aria-labelledby={`${id}-titulo`}>
   <div class="contenedor">
     <div class="encabezado-seccion">
-      <h2 id="proceso-titulo">Cómo se hacen</h2>
+      <h2 id={`${id}-titulo`}>{titulo}</h2>
+      {introduccion && <p>{introduccion}</p>}
     </div>
-
     <ol class="pasos" role="list">
       {
         pasos.map((paso, i) => (
@@ -37,9 +33,7 @@ const pasos = [
       }
     </ol>
 
-    <p class="proceso__firma">
-      Detrás de {sitio.nombre} está {sitio.creador}: diseña, imprime y arma cada par. Si escribes por WhatsApp, te contesta en persona.
-    </p>
+    {firma && <p class="proceso__firma">{firma}</p>}
   </div>
 </section>
 

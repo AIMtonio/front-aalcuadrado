@@ -5,8 +5,11 @@ import { sitio } from '@/config/sitio';
 import Encabezado from '@/components/Encabezado.astro';
 import Pie from '@/components/Pie.astro';
 import BotonFlotante from '@/components/BotonFlotante.astro';
+import type { Linea } from '@/config/rutas';
 
 interface Props {
+  /** Página en la que se está: decide la pestaña activa y el mensaje de WhatsApp. */
+  linea: Linea;
   titulo?: string;
   descripcion?: string;
   /** Datos estructurados adicionales (JSON-LD) de la página. */
@@ -14,7 +17,8 @@ interface Props {
 }
 
 const {
-  titulo = `${sitio.nombre} · Aretes mexicanos impresos en 3D`,
+  linea,
+  titulo = `${sitio.nombre} · Manualidades hechas a mano`,
   descripcion = sitio.descripcion,
   jsonLd = [],
 } = Astro.props;
@@ -79,11 +83,11 @@ const organizacion = {
   </head>
   <body>
     <a class="salto" href="#contenido">Saltar al contenido</a>
-    <Encabezado />
+    <Encabezado linea={linea} />
     <main id="contenido">
       <slot />
     </main>
     <Pie />
-    <BotonFlotante />
+    <BotonFlotante linea={linea} />
   </body>
 </html>

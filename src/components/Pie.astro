@@ -1,4 +1,5 @@
 ---
+import { rutas } from '@/config/rutas';
 import { sitio } from '@/config/sitio';
 import { pedidos } from '@/services/pedidos';
 import Logo from './Logo.astro';
@@ -17,8 +18,13 @@ const anio = new Date().getFullYear();
   <div class="contenedor pie__rejilla">
     <div class="pie__marca">
       <Logo tamano="grande" claro />
-      <p>Hecho en {sitio.ciudad}, capa por capa.</p>
+      <p>Manualidades hechas a mano en {sitio.ciudad}.</p>
     </div>
+
+    <ul class="pie__redes" role="list" aria-label="Productos">
+      <li><a href={rutas.aretes}><span>Aretes</span></a></li>
+      <li><a href={rutas.kits}><span>{sitio.kits.nombre}</span></a></li>
+    </ul>
 
     <ul class="pie__redes" role="list" aria-label="Contacto">
       {/*
@@ -97,7 +103,8 @@ const anio = new Date().getFullYear();
 
   @media (min-width: 60rem) {
     .pie__rejilla {
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr auto auto;
+      column-gap: var(--espacio-8);
       align-items: start;
     }
 

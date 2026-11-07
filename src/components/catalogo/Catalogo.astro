@@ -1,15 +1,26 @@
 ---
 import type { ImageMetadata } from 'astro';
-import type { Coleccion, Producto } from '@/domain/catalogo';
+import type { Categoria, Coleccion, Producto } from '@/domain/catalogo';
 import TarjetaProducto from './TarjetaProducto.astro';
 
 interface Props {
   productos: Producto<ImageMetadata>[];
   colecciones: Coleccion[];
+  /** Categorías de aretes del panel de la API (arracadas, broqueles…). */
+  categorias: Categoria[];
   urlSitio: string;
 }
 
-const { productos, colecciones, urlSitio } = Astro.props;
+const { productos, colecciones, categorias, urlSitio } = Astro.props;
+
+// Un filtro con una sola opción que tienen todos los productos no sirve de nada.
+const sirve = (opciones: { totalProductos: number }[]) =>
+  opciones.length > 1 || (opciones.length === 1 && opciones[0]!.totalProductos < productos.length);
+
+const filtros = [
+  { grupo: 'coleccion', etiqueta: 'Colección', opciones: colecciones.map((c) => ({ valor: c.id, nombre: c.nombre })), ver: sirve(colecciones) },
+  { grupo: 'categoria', etiqueta: 'Tipo', opciones: categorias.map((c) => ({ valor: c.slug, nombre: c.nombre })), ver: sirve(categorias) },
+].filter((f) => f.ver);
 ---
 
 <section class="seccion" id="catalogo" aria-labelledby="catalogo-titulo">
@@ -21,15 +32,24 @@ const { productos, colecciones, urlSitio } = Astro.props;
       </div>
 
       {
-        colecciones.length > 1 && (
-          <div class="filtros" role="group" aria-label="Filtrar por colección" data-filtros>
-            <button type="button" class="filtro" aria-pressed="true" data-filtro="">
-              Todos
-            </button>
-            {colecciones.map((c) => (
-              <button type="button" class="filtro" aria-pressed="false" data-filtro={c.id}>
-                {c.nombre}
-              </button>
+        filtros.length > 0 && (
+          <div class="catalogo__filtros">
+            {filtros.map((f) => (
+              <div class="filtros" role="group" aria-label={`Filtrar por ${f.etiqueta.toLowerCase()}`} data-filtros={f.grupo}>
+                {filtros.length > 1 && (
+                  <span class="filtros__etiqueta" aria-hidden="true">
+                    {f.etiqueta}
+                  </span>
+                )}
+                <button type="button" class="filtro" aria-pressed="true" data-filtro="">
+                  Todos
+                </button>
+                {f.opciones.map((o) => (
+                  <button type="button" class="filtro" aria-pressed="false" data-filtro={o.valor}>
+                    {o.nombre}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         )
@@ -41,12 +61,13 @@ const { productos, colecciones, urlSitio } = Astro.props;
     <ul class="catalogo__rejilla" role="list">
       {
         productos.map((producto) => (
-          <li data-coleccion={producto.coleccion}>
+          <li data-coleccion={producto.coleccion} data-categoria={producto.categoria?.slug ?? ''}>
             <TarjetaProducto producto={producto} urlSitio={urlSitio} />
           </li>
         ))
       }
     </ul>
+    <p class="catalogo__vacio" data-vacio hidden>No hay aretes con esos filtros. Prueba con otra combinación.</p>
   </div>
 </section>
 
@@ -61,8 +82,15 @@ const { productos, colecciones, urlSitio } = Astro.props;
     margin-bottom: 0;
   }
 
+  .catalogo__filtros {
+    display: grid;
+    gap: var(--espacio-2);
+    min-width: 0;
+  }
+
   .filtros {
     display: flex;
+    align-items: center;
     gap: var(--espacio-2);
     overflow-x: auto;
     margin-inline: calc(var(--margen-lateral) * -1);
@@ -72,6 +100,13 @@ const { productos, colecciones, urlSitio } = Astro.props;
 
   .filtros::-webkit-scrollbar {
     display: none;
+  }
+
+  .filtros__etiqueta {
+    flex: none;
+    min-width: 5.5rem;
+    color: var(--color-lavanda);
+    font-size: var(--texto-sm);
   }
 
   .filtro {
@@ -109,6 +144,13 @@ const { productos, colecciones, urlSitio } = Astro.props;
     display: none;
   }
 
+  .catalogo__vacio {
+    padding: var(--espacio-7) 0;
+    color: var(--color-lavanda);
+    font-size: var(--texto-lg);
+    text-align: center;
+  }
+
   @media (min-width: 60rem) {
     .catalogo__rejilla {
       grid-template-columns: repeat(3, 1fr);
@@ -125,44 +167,62 @@ const { productos, colecciones, urlSitio } = Astro.props;
       flex-wrap: wrap;
       justify-content: flex-end;
     }
+
+    .filtros__etiqueta {
+      min-width: 0;
+      margin-right: var(--espacio-2);
+    }
   }
 </style>
 
 <script>
   import '@/scripts/tarjetas';
-  import { NOMBRES_COLECCION, type ColeccionId } from '@/domain/colecciones';
 
-  const grupo = document.querySelector<HTMLElement>('[data-filtros]');
-  const botones = [...document.querySelectorAll<HTMLButtonElement>('[data-filtro]')];
+  type Grupo = 'coleccion' | 'categoria';
+
+  const grupos = [...document.querySelectorAll<HTMLElement>('[data-filtros]')];
   const items = [...document.querySelectorAll<HTMLElement>('.catalogo__rejilla > li')];
   const resultado = document.querySelector<HTMLElement>('[data-resultado]');
+  const vacio = document.querySelector<HTMLElement>('[data-vacio]');
+  const activos: Record<Grupo, string> = { coleccion: '', categoria: '' };
 
-  function filtrar(coleccion: string, anunciar = true) {
-    const valida = botones.some((b) => b.dataset.filtro === coleccion) ? coleccion : '';
-    botones.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filtro === valida)));
+  const botonesDe = (grupo: string) => [...document.querySelectorAll<HTMLButtonElement>(`[data-filtros="${grupo}"] [data-filtro]`)];
+
+  function filtrar(grupo: Grupo, valor: string, anunciar = true) {
+    const botones = botonesDe(grupo);
+    const valido = botones.some((b) => b.dataset.filtro === valor) ? valor : '';
+    activos[grupo] = valido;
+    botones.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filtro === valido)));
+
     let visibles = 0;
     items.forEach((li) => {
-      const ver = !valida || li.dataset.coleccion === valida;
+      const ver = (Object.keys(activos) as Grupo[]).every((g) => !activos[g] || li.dataset[g] === activos[g]);
       li.hidden = !ver;
       if (ver) visibles++;
     });
+    if (vacio) vacio.hidden = visibles > 0;
 
     const url = new URL(location.href);
-    if (valida) url.searchParams.set('coleccion', valida);
-    else url.searchParams.delete('coleccion');
+    if (valido) url.searchParams.set(grupo, valido);
+    else url.searchParams.delete(grupo);
     history.replaceState(history.state, '', url);
 
     if (anunciar && resultado) {
-      const nombre = valida ? NOMBRES_COLECCION[valida as ColeccionId] : 'todas las colecciones';
-      resultado.textContent = `${visibles} ${visibles === 1 ? 'producto' : 'productos'} en ${nombre}`;
+      const nombres = (Object.keys(activos) as Grupo[])
+        .filter((g) => activos[g])
+        .map((g) => botonesDe(g).find((b) => b.dataset.filtro === activos[g])?.textContent?.trim());
+      const en = nombres.length ? `en ${nombres.join(' y ')}` : 'en total';
+      resultado.textContent = `${visibles} ${visibles === 1 ? 'producto' : 'productos'} ${en}`;
     }
   }
 
-  if (grupo) {
-    botones.forEach((b) => b.addEventListener('click', () => filtrar(b.dataset.filtro ?? '')));
+  for (const contenedor of grupos) {
+    const grupo = contenedor.dataset.filtros as Grupo;
+    const botones = botonesDe(grupo);
+    botones.forEach((b) => b.addEventListener('click', () => filtrar(grupo, b.dataset.filtro ?? '')));
 
     // Flechas izquierda/derecha para moverse entre filtros.
-    grupo.addEventListener('keydown', (e) => {
+    contenedor.addEventListener('keydown', (e) => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
       const i = botones.indexOf(document.activeElement as HTMLButtonElement);
       if (i < 0) return;
@@ -170,15 +230,15 @@ const { productos, colecciones, urlSitio } = Astro.props;
       botones[(i + (e.key === 'ArrowRight' ? 1 : -1) + botones.length) % botones.length]?.focus();
     });
 
-    const inicial = new URLSearchParams(location.search).get('coleccion');
-    if (inicial) filtrar(inicial, false);
+    const inicial = new URLSearchParams(location.search).get(grupo);
+    if (inicial) filtrar(grupo, inicial, false);
   }
 
   // Enlaces que llevan a una colección (por ejemplo, la franja de temporada).
   document.querySelectorAll<HTMLAnchorElement>('[data-ir-coleccion]').forEach((enlace) =>
     enlace.addEventListener('click', (e) => {
       e.preventDefault();
-      filtrar(enlace.dataset.irColeccion ?? '');
+      filtrar('coleccion', enlace.dataset.irColeccion ?? '');
       document.querySelector('#catalogo')?.scrollIntoView();
     }),
   );

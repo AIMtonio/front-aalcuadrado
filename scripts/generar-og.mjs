@@ -26,7 +26,7 @@ const og = conSimbolo(
   155,
   320,
   `<text x="500" y="320" font-family="Unbounded, 'Arial Black', Helvetica, Arial, sans-serif" font-size="84" font-weight="900" letter-spacing="-3" fill="#17142B">aalcuadrado</text>
-   <text x="504" y="392" font-family="Helvetica, Arial, sans-serif" font-size="34" fill="#5C5878">Aretes mexicanos impresos en 3D</text>
+   <text x="504" y="392" font-family="Helvetica, Arial, sans-serif" font-size="34" fill="#5C5878">Manualidades hechas a mano</text>
    <rect x="0" y="606" width="1200" height="24" fill="#3B2A9B"/>`,
 );
 

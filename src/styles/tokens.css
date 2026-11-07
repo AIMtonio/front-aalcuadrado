@@ -1,20 +1,26 @@
 /*
  * Tokens de la marca aalcuadrado.
  * Cambia un color aquí y se actualiza en todo el sitio.
+ * Los fondos son cálidos (papel y crema) porque todo es hecho a mano;
+ * morado y rosa siguen siendo la marca, y pino, rojo y dorado son de los kits navideños.
  */
 :root {
   /* Paleta */
   --color-morado: #3b2a9b;
-  --color-morado-oscuro: #2c1f78;
   --color-morado-suave: #e9e6f7;
   --color-rosa: #e4007c;
   --color-rosa-oscuro: #b80064;
   --color-cempasuchil: #ff9f1c;
+  --color-pino: #1f5e3b;
+  --color-pino-oscuro: #164a2e;
+  --color-rojo: #b3202a;
+  --color-dorado: #c9a227;
   --color-tinta: #17142b;
   --color-lavanda: #5c5878;
   --color-blanco: #ffffff;
-  --color-alterno: #f4f3fa;
-  --color-borde: #dcd9ea;
+  --color-papel: #fffcf7; /* fondo general */
+  --color-alterno: #f7f1e8; /* crema, para alternar secciones */
+  --color-borde: #e5dccf;
   --color-whatsapp: #157a3f; /* verde oscuro: contraste AA con texto blanco */
 
   /* Tipografía (las variables --fuente-* las genera Astro en astro.config.mjs) */
@@ -58,5 +64,6 @@
   --duracion-media: 280ms;
 
   --altura-encabezado: 4rem;
+  --altura-pestanas: 3.25rem; /* fila de "Aretes · Kits navideños" bajo el encabezado */
   --foco: 0 0 0 3px var(--color-blanco), 0 0 0 5px var(--color-morado);
 }

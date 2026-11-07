@@ -1,9 +1,16 @@
 ---
 import Icono from './Icono.astro';
+import type { Linea } from '@/config/rutas';
 import { pedidos } from '@/services/pedidos';
+
+interface Props {
+  linea: Linea;
+}
+
+const { linea } = Astro.props;
 ---
 
-<a class="flotante" href={pedidos.general()} target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
+<a class="flotante" href={pedidos.general(linea)} target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
   <Icono nombre="whatsapp" />
 </a>
 

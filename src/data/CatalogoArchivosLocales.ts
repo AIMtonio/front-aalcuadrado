@@ -13,6 +13,8 @@ import {
   ordenNatural,
   textoDesdeArchivo,
   type CatalogoApi,
+  type Categoria,
+  type CategoriaProducto,
   type Coleccion,
   type Color,
   type ColeccionId,
@@ -21,6 +23,7 @@ import {
   type FotoJson,
   type Producto,
 } from '@/domain/catalogo';
+import type { OpcionesKit } from '@/domain/kits';
 import type { CatalogoRepository } from './CatalogoRepository';
 
 /*
@@ -98,6 +101,7 @@ interface FuenteProducto {
   disponible: boolean;
   destacado: boolean;
   orden?: number;
+  categoria?: CategoriaProducto;
   colores: Color[];
   /** Fotos del JSON del repositorio: se usan si la API no tiene fotos de este producto. */
   fotosRepositorio: FotoJson[];
@@ -148,6 +152,7 @@ function fuentesDeProductos(): FuenteProducto[] {
     disponible: p.disponible,
     destacado: p.destacado,
     orden: p.orden ?? undefined,
+    categoria: p.categoria ?? undefined,
     colores: p.colores,
     fotosRepositorio: repositorio.get(p.slug)?.fotosRepositorio ?? [],
   }));
@@ -216,6 +221,7 @@ function construirProductos(): Producto<Imagen>[] {
       disponible: datos.disponible,
       destacado: datos.destacado,
       orden: datos.orden,
+      categoria: datos.categoria,
       fotos,
     });
   }
@@ -229,20 +235,27 @@ function construirProductos(): Producto<Imagen>[] {
   );
 }
 
+/** Las fotos de la API de una categoría sin producto (galería o kits), en el orden del panel. */
+function fotosSueltasDeApi(categoria: 'galeria' | 'kits', contexto: string): FotoGaleria<Imagen>[] {
+  const fotos: FotoGaleria<Imagen>[] = [];
+  for (const { imagen, alt } of fotosApi.filter((f) => f.categoria === categoria)) {
+    const src = buscarImagen(imagen, contexto);
+    if (!src) continue;
+    const archivo = archivoDeRuta(imagen);
+    // La API agrega al nombre un sufijo aleatorio (`aretes-puestos-1a2b3c4d.jpg`); no va en el texto.
+    fotos.push({
+      src,
+      archivo,
+      alt: alt ?? textoDesdeArchivo(archivo.replace(/-[0-9a-f]{8}(?=\.[^.]+$)/, '')),
+    });
+  }
+  return fotos;
+}
+
 function construirGaleria(): FotoGaleria<Imagen>[] {
   // Si la API tiene fotos de galería, reemplazan a las de galeria.json.
-  const deLaApi = fotosApi.filter((f) => f.categoria === 'galeria');
-  if (deLaApi.length > 0) {
-    const fotos: FotoGaleria<Imagen>[] = [];
-    for (const { imagen, alt } of deLaApi) {
-      const src = buscarImagen(imagen, 'Galería');
-      if (!src) continue;
-      const archivo = archivoDeRuta(imagen);
-      // La API agrega al nombre un sufijo aleatorio (`aretes-puestos-1a2b3c4d.jpg`); no va en el texto.
-      fotos.push({ src, archivo, alt: alt ?? textoDesdeArchivo(archivo.replace(/-[0-9a-f]{8}(?=\.[^.]+$)/, '')) });
-    }
-    return fotos;
-  }
+  const deLaApi = fotosSueltasDeApi('galeria', 'Galería');
+  if (deLaApi.length > 0) return deLaApi;
   const crudo = Object.values(jsonGaleria)[0];
   if (crudo === undefined) return [];
   const resultado = GaleriaJsonSchema.safeParse(crudo);
@@ -261,17 +274,45 @@ function construirGaleria(): FotoGaleria<Imagen>[] {
   return fotos;
 }
 
+/**
+ * Colores y aromas de los kits. Cada lista (colores del jabón, aromas de la vela…)
+ * sale del panel si tiene al menos una opción disponible; si no, de `sitio.kits`,
+ * para que el formulario nunca quede sin opciones.
+ */
+function construirOpcionesKit(): OpcionesKit {
+  const kits = catalogoApi?.kits;
+  const elegir = <T>(deLaApi: T[], fijas: readonly T[], descripcion: string): T[] => {
+    if (deLaApi.length > 0) return deLaApi;
+    if (kits) avisar(`El panel no tiene ${descripcion} disponibles; se usan los de src/config/sitio.ts.`);
+    return [...fijas];
+  };
+  const pieza = (clave: 'jabon' | 'vela', nombre: string) => {
+    const en = clave === 'jabon' ? 'enJabon' : 'enVela';
+    return {
+      colores: elegir(
+        (kits?.colores ?? []).filter((c) => c[en]).map(({ nombre, hex }) => ({ nombre, hex })),
+        sitio.kits[clave].colores,
+        `colores para ${nombre}`,
+      ),
+      aromas: elegir(
+        (kits?.aromas ?? []).filter((a) => a[en]).map((a) => a.nombre),
+        sitio.kits[clave].aromas,
+        `aromas para ${nombre}`,
+      ),
+    };
+  };
+  return { jabon: pieza('jabon', 'el jabón'), vela: pieza('vela', 'la vela') };
+}
+
 export class CatalogoArchivosLocales implements CatalogoRepository<Imagen> {
   #productos?: Producto<Imagen>[];
   #galeria?: FotoGaleria<Imagen>[];
+  #fotosKits?: FotoGaleria<Imagen>[];
+  #opcionesKit?: OpcionesKit;
 
   async listarProductos() {
     this.#productos ??= construirProductos();
     return this.#productos;
-  }
-
-  async obtenerProducto(slug: string) {
-    return (await this.listarProductos()).find((p) => p.slug === slug);
   }
 
   async listarColecciones(): Promise<Coleccion[]> {
@@ -283,8 +324,33 @@ export class CatalogoArchivosLocales implements CatalogoRepository<Imagen> {
     })).filter((c) => c.totalProductos > 0);
   }
 
+  async listarCategorias(): Promise<Categoria[]> {
+    const productos = await this.listarProductos();
+    // Las del panel en su orden; si un producto trae una que no está en la lista, va al final.
+    const porSlug = new Map<string, CategoriaProducto>();
+    for (const c of catalogoApi?.categorias ?? []) porSlug.set(c.slug, c);
+    for (const p of productos)
+      if (p.categoria && !porSlug.has(p.categoria.slug)) porSlug.set(p.categoria.slug, p.categoria);
+    return [...porSlug.values()]
+      .map((c) => ({
+        ...c,
+        totalProductos: productos.filter((p) => p.categoria?.slug === c.slug).length,
+      }))
+      .filter((c) => c.totalProductos > 0);
+  }
+
   async listarFotosGaleria() {
     this.#galeria ??= construirGaleria();
     return this.#galeria;
+  }
+
+  async listarFotosKits() {
+    this.#fotosKits ??= fotosSueltasDeApi('kits', 'Kits');
+    return this.#fotosKits;
+  }
+
+  async opcionesKit() {
+    this.#opcionesKit ??= construirOpcionesKit();
+    return this.#opcionesKit;
   }
 }

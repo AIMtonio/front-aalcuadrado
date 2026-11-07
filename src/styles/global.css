@@ -9,7 +9,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--altura-encabezado) + var(--espacio-4));
+  scroll-padding-top: calc(var(--altura-encabezado) + var(--altura-pestanas) + var(--espacio-4));
   color-scheme: light;
 }
 
@@ -21,12 +21,17 @@ html {
 
 body {
   margin: 0;
-  background: var(--color-blanco);
+  background: var(--color-papel);
   color: var(--color-tinta);
   font-family: var(--fuente-cuerpo);
   font-size: var(--texto-base);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+
+/* `hidden` siempre gana, aunque el elemento tenga su propio `display` (por ejemplo, `.boton`). */
+[hidden] {
+  display: none !important;
 }
 
 body.sin-scroll {
@@ -206,6 +211,14 @@ ol[role='list'] {
   --boton-fondo: #0f5f30;
 }
 
+.boton--navidad {
+  --boton-fondo: var(--color-pino);
+}
+
+.boton--navidad:hover {
+  --boton-fondo: var(--color-pino-oscuro);
+}
+
 .boton--contorno {
   background: transparent;
   color: var(--color-tinta);
@@ -216,6 +229,28 @@ ol[role='list'] {
   background: var(--color-tinta);
   color: var(--color-blanco);
   border-color: var(--color-tinta);
+}
+
+/* Sobre fondos oscuros (portada de los kits). */
+.boton--claro {
+  --boton-fondo: var(--color-blanco);
+  --boton-texto: var(--color-pino);
+}
+
+.boton--claro:hover {
+  --boton-fondo: var(--color-alterno);
+}
+
+.boton--contorno-claro {
+  background: transparent;
+  color: var(--color-blanco);
+  border-color: currentColor;
+}
+
+.boton--contorno-claro:hover {
+  background: var(--color-blanco);
+  color: var(--color-pino);
+  border-color: var(--color-blanco);
 }
 
 .boton--chico {

@@ -1,9 +1,15 @@
 ---
-import { sitio } from '@/config/sitio';
 import Icono from './Icono.astro';
+
+interface Props {
+  preguntas: readonly { pregunta: string; respuesta: string }[];
+  alterna?: boolean;
+}
+
+const { preguntas, alterna = true } = Astro.props;
 ---
 
-<section class="seccion seccion--alterna" id="preguntas" aria-labelledby="preguntas-titulo">
+<section class:list={['seccion', { 'seccion--alterna': alterna }]} id="preguntas" aria-labelledby="preguntas-titulo">
   <div class="contenedor preguntas">
     <div class="encabezado-seccion">
       <h2 id="preguntas-titulo">Preguntas frecuentes</h2>
@@ -11,7 +17,7 @@ import Icono from './Icono.astro';
 
     <div class="preguntas__lista">
       {
-        sitio.preguntas.map((p) => (
+        preguntas.map((p) => (
           <details class="pregunta" name="preguntas">
             <summary>
               <span>{p.pregunta}</span>

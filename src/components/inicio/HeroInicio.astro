@@ -1,0 +1,257 @@
+---
+/**
+ * Portada: qué es aalcuadrado y la elección entre las dos líneas de producto.
+ * Las mismas dos opciones están en las pestañas del encabezado.
+ */
+import type { ImageMetadata } from 'astro';
+import { Picture } from 'astro:assets';
+import type { Producto } from '@/domain/catalogo';
+import { rutas } from '@/config/rutas';
+import { sitio } from '@/config/sitio';
+import Simbolo from '@/components/Simbolo.astro';
+import Icono from '@/components/Icono.astro';
+import VistaKit from '@/components/kits/VistaKit.astro';
+
+interface Props {
+  /** Su primera foto ilustra la tarjeta de aretes. */
+  destacado?: Producto<ImageMetadata>;
+  totalAretes: number;
+}
+
+const { destacado, totalAretes } = Astro.props;
+const portada = destacado?.fotos[0];
+---
+
+<section class="inicio" id="inicio" aria-labelledby="inicio-titulo">
+  <div class="contenedor">
+    <div class="inicio__texto">
+      <Simbolo class="inicio__simbolo" animado />
+      <h1 id="inicio-titulo">Manualidades hechas a mano, a tu gusto</h1>
+      <p class="inicio__subtitulo">
+        Aretes con motivos mexicanos impresos en 3D y kits navideños de jabón y vela. Todo se hace en {sitio.ciudad}, en
+        los colores que elijas.
+      </p>
+    </div>
+
+    <h2 class="inicio__pregunta">¿Qué quieres ver?</h2>
+    <ul class="lineas" role="list">
+      <li>
+        <a class="linea" href={rutas.aretes}>
+          <div class="linea__media">
+            {
+              portada && (
+                <Picture
+                  src={portada.src}
+                  alt=""
+                  formats={['avif', 'webp']}
+                  widths={[400, 600, 800, 1100]}
+                  sizes="(min-width: 76rem) 36rem, (min-width: 48rem) 46vw, 92vw"
+                  loading="eager"
+                  fetchpriority="high"
+                />
+              )
+            }
+          </div>
+          <div class="linea__cuerpo">
+            <span class="linea__icono" aria-hidden="true"><Icono nombre="arete" /></span>
+            <h3>Aretes</h3>
+            <p>
+              Ligeros, impresos en 3D capa por capa
+              {totalAretes > 0 && <> · {totalAretes} {totalAretes === 1 ? 'modelo' : 'modelos'}</>}.
+            </p>
+            <span class="linea__ir">Ver aretes <Icono nombre="flecha" /></span>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a class="linea linea--kits" href={rutas.kits}>
+          <div class="linea__media linea__media--dibujo">
+            <VistaKit jabon="#1F5E3B" vela="#B3202A" forma="estrella" topping="canela" />
+          </div>
+          <div class="linea__cuerpo">
+            <span class="linea__icono" aria-hidden="true"><Icono nombre="vela" /></span>
+            <h3>{sitio.kits.nombre}</h3>
+            <p>Una vela, dos jabones y un nacimiento pequeño, a tu medida. Elige colores, aromas y forma.</p>
+            <span class="linea__ir">Armar mi kit <Icono nombre="flecha" /></span>
+          </div>
+        </a>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<style>
+  .inicio {
+    padding-block: var(--espacio-6) var(--espacio-seccion);
+  }
+
+  .inicio__texto {
+    display: grid;
+    gap: var(--espacio-5);
+    justify-items: start;
+    max-width: 46rem;
+  }
+
+  .inicio :global(.inicio__simbolo) {
+    width: clamp(4rem, 3rem + 5vw, 6.5rem);
+    height: auto;
+    margin-bottom: var(--espacio-2);
+  }
+
+  .inicio h1 {
+    max-width: 16ch;
+  }
+
+  .inicio__subtitulo {
+    max-width: 44ch;
+    font-size: var(--texto-lg);
+    color: var(--color-lavanda);
+  }
+
+  .inicio__pregunta {
+    margin: var(--espacio-7) 0 var(--espacio-5);
+    font-size: var(--texto-xl);
+  }
+
+  .lineas {
+    display: grid;
+    gap: var(--espacio-5);
+  }
+
+  .linea {
+    display: grid;
+    height: 100%;
+    border-radius: var(--radio-lg);
+    overflow: hidden;
+    background: var(--color-blanco);
+    box-shadow: 0 1px 0 var(--color-borde), 0 18px 40px -28px rgb(23 20 43 / 0.4);
+    text-decoration: none;
+    transition: transform var(--duracion-media) var(--curva-salida);
+  }
+
+  .linea:hover {
+    transform: translateY(-3px);
+  }
+
+  .linea__media {
+    aspect-ratio: 16 / 10;
+    background: var(--color-alterno);
+    overflow: hidden;
+  }
+
+  .linea__media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--duracion-media) var(--curva-salida);
+  }
+
+  .linea:hover .linea__media :global(img) {
+    transform: scale(1.03);
+  }
+
+  .linea__media--dibujo {
+    display: grid;
+    place-items: center;
+    padding: var(--espacio-5) 12%;
+    background:
+      radial-gradient(circle at 50% 35%, rgb(201 162 39 / 0.18), transparent 60%),
+      var(--color-alterno);
+  }
+
+  .linea__cuerpo {
+    display: grid;
+    gap: var(--espacio-2);
+    justify-items: start;
+    padding: var(--espacio-5);
+  }
+
+  .linea__icono {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: var(--espacio-1);
+    border-radius: var(--radio-sm);
+    background: var(--color-morado-suave);
+    color: var(--color-morado);
+  }
+
+  .linea--kits .linea__icono {
+    background: #e3efe7;
+    color: var(--color-pino);
+  }
+
+  .linea__cuerpo h3 {
+    font-size: var(--texto-xl);
+  }
+
+  .linea__cuerpo p {
+    color: var(--color-lavanda);
+  }
+
+  .linea__ir {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--espacio-2);
+    margin-top: var(--espacio-2);
+    font-weight: 700;
+    color: var(--color-morado);
+  }
+
+  .linea--kits .linea__ir {
+    color: var(--color-pino);
+  }
+
+  .linea__ir :global(.icono) {
+    width: 1.25rem;
+    height: 1.25rem;
+    transition: transform var(--duracion-corta) var(--curva-salida);
+  }
+
+  .linea:hover .linea__ir :global(.icono) {
+    transform: translateX(3px);
+  }
+
+  @media (min-width: 48rem) {
+    .lineas {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Escritorio: título a la izquierda y texto a la derecha, para que las tarjetas se vean sin bajar. */
+  @media (min-width: 60rem) {
+    .inicio {
+      padding-top: var(--espacio-7);
+    }
+
+    .inicio__texto {
+      grid-template-columns: 1.35fr 1fr;
+      align-items: end;
+      column-gap: var(--espacio-8);
+      max-width: none;
+    }
+
+    .inicio :global(.inicio__simbolo) {
+      grid-column: 1 / -1;
+      width: 4.5rem;
+    }
+
+    .inicio h1 {
+      max-width: none;
+      font-size: clamp(2.5rem, 1.4rem + 2.4vw, 3.5rem);
+    }
+
+    .inicio__subtitulo {
+      padding-bottom: var(--espacio-2);
+    }
+
+    .linea__media {
+      aspect-ratio: 16 / 9;
+    }
+
+    .inicio__pregunta {
+      margin-top: var(--espacio-7);
+    }
+  }
+</style>

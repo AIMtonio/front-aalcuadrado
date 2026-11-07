@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera un solo `index.html` con todo lo necesario. El navegador no llama a ninguna API: los productos y las fotos que se administran desde el panel de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) se descargan al compilar (ver *Productos y fotos desde la API*).
+Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera tres páginas: la portada (`/`), los aretes (`/aretes/`) y los kits navideños (`/kits-navidenos/`). El navegador no llama a ninguna API: los productos y las fotos que se administran desde el panel de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) se descargan al compilar (ver *Productos y fotos desde la API*).
 
 ```mermaid
 flowchart TB
@@ -51,7 +51,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | Dominio | `src/domain/` | Esquemas Zod (`ProductoJsonSchema`, `ColorSchema`…) y tipos (`Producto`, `FotoProducto`, `Color`, `Coleccion`). | Solo depende de `zod`. Es el contrato que respetará el backend. |
 | Datos | `src/data/` | `CatalogoRepository` (interfaz) y `CatalogoArchivosLocales` (lee los JSON y las fotos de `src/content/` con `import.meta.glob`). `src/data/index.ts` decide qué implementación se usa. | Páginas y componentes **nunca** leen archivos: siempre pasan por `catalogo`. |
-| Servicios | `src/services/pedidos.ts` | `CanalPedidos` arma los enlaces de compra. Hoy, `CanalWhatsApp`. | Sin APIs de Astro: se usa igual en el servidor y en el navegador. |
+| Servicios | `src/services/` | `CanalPedidos` arma los enlaces de compra (hoy, por WhatsApp). `ClienteDisenos` y `ClienteKits` llaman a las rutas públicas de la API desde el navegador. | Sin APIs de Astro: se usa igual en el servidor y en el navegador. |
 | Configuración | `src/config/sitio.ts` | WhatsApp, redes, temporada, precios, preguntas frecuentes. | Todo lo que cambia seguido vive aquí. |
 | Presentación | `src/pages/`, `src/components/`, `src/scripts/` | Componentes `.astro` y TypeScript nativo para la interactividad. | Sin React, Vue ni Tailwind. |
 
@@ -75,8 +75,14 @@ Da un panel para subir fotos y editar productos desde el navegador sin agregar s
 **Visor y enlaces profundos.**
 Un único `<dialog>` sirve a todos los productos y a la galería. Al compilar se generan las versiones del visor (WebP en 640–1920 px y miniaturas) y viajan como JSON en la página. El estado vive en la URL (`#producto/<slug>/<n>`), así que un enlace compartido abre la misma foto y el botón "atrás" cierra el visor.
 
+**Kits navideños.**
+No son productos del catálogo: son un pedido a la medida. `src/domain/kits.ts` repite las reglas del DTO de la API (`CrearPedidoDto`) para mostrar los errores junto a cada campo antes de mandar nada, y `ClienteKits` hace `POST /api/pedidos` (pública, máximo 5 por minuto por IP). Las opciones del formulario viven en `sitio.kits`; la API no tiene catálogo de opciones y guarda el texto tal cual. Si no hay `API_URL` o la API falla, el pedido se manda por WhatsApp con `CanalPedidos.kit()`.
+
+**Páginas y pestañas.**
+Cada línea de producto tiene su página, y `Base` recibe `linea` (`inicio`, `aretes` o `kits`) para marcar la pestaña activa, elegir los enlaces del encabezado y el mensaje de WhatsApp. Antes los aretes estaban en la portada: un script en `/` manda los enlaces viejos (`/#producto/…`, `/?coleccion=…`) a `/aretes/`.
+
 **Productos y fotos desde la API.**
-`npm run api:sincronizar` (`scripts/sincronizar-api.mjs`) inicia sesión en [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) con `API_URL`, `API_USUARIO` y `API_PASSWORD`, descarga las fotos a `src/content/fotos/api/` y escribe los productos y los datos de las fotos en `src/content/catalogo-api.json` (ambos fuera de git). Como las fotos quedan dentro de `src/content/fotos/`, `import.meta.glob` las importa y Astro las optimiza igual que las del repositorio. `CatalogoArchivosLocales` valida el archivo con `CatalogoApiJsonSchema`:
+`npm run api:sincronizar` (`scripts/sincronizar-api.mjs`) inicia sesión en [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) con `API_URL`, `API_USUARIO` y `API_PASSWORD`, descarga las fotos a `src/content/fotos/api/` y escribe los productos, las categorías de aretes y los datos de las fotos en `src/content/catalogo-api.json` (ambos fuera de git). Si la API todavía no tiene `/api/categorias` (responde 404), se sigue sin categorías. Como las fotos quedan dentro de `src/content/fotos/`, `import.meta.glob` las importa y Astro las optimiza igual que las del repositorio. `CatalogoArchivosLocales` valida el archivo con `CatalogoApiJsonSchema`:
 
 - **Con la API**, los productos son los de la API. Las fotos de cada producto son las que la API tenga de él; si todavía no tiene, se usan las del JSON del repositorio con el mismo slug. Igual con la galería.
 - **Sin la API** (sin `API_URL`), todo sale de `src/content/` como antes.

@@ -1,0 +1,127 @@
+---
+import { sitio } from '@/config/sitio';
+import { pedidos } from '@/services/pedidos';
+import Icono from '@/components/Icono.astro';
+import VistaKit from './VistaKit.astro';
+---
+
+<section class="hero-kits" id="inicio" aria-labelledby="hero-kits-titulo">
+  <div class="contenedor hero-kits__rejilla">
+    <div class="hero-kits__texto">
+      <p class="hero-kits__antetitulo">Temporada navideña</p>
+      <h1 id="hero-kits-titulo">{sitio.kits.nombre} de jabón y vela</h1>
+      <p class="hero-kits__subtitulo">Hechos a mano con los colores y aromas que elijas. Para regalar o para tu casa; listo en {sitio.kits.entrega}. Cada kit trae:</p>
+      <ul class="hero-kits__contenido" role="list" aria-label="Cada kit trae">
+        {
+          sitio.kits.contenido.map((c) => (
+            <li>
+              <strong>{c.cantidad}</strong> {c.nombre}
+            </li>
+          ))
+        }
+      </ul>
+      <div class="hero-kits__acciones">
+        <a class="boton boton--claro" href="#arma-tu-kit">Arma tu kit</a>
+        <a class="boton boton--contorno-claro" href={pedidos.general('kits')} target="_blank" rel="noopener">
+          <Icono nombre="whatsapp" />
+          Pregunta por WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-kits__dibujo">
+      <VistaKit
+        jabon="#B3202A"
+        vela="#F4EFE6"
+        forma="arbol"
+        topping="naranja"
+        etiqueta="Dibujo de un kit: dos jabones rojos en forma de árbol de navidad, una vela blanca en frasco con rodajas de naranja y un nacimiento pequeño"
+      />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero-kits {
+    padding-block: var(--espacio-7) var(--espacio-seccion);
+    background:
+      radial-gradient(circle at 85% 20%, rgb(201 162 39 / 0.22), transparent 45%),
+      var(--color-pino);
+    color: var(--color-blanco);
+  }
+
+  .hero-kits__rejilla {
+    display: grid;
+    gap: var(--espacio-7);
+    align-items: center;
+  }
+
+  .hero-kits__texto {
+    display: grid;
+    gap: var(--espacio-5);
+    justify-items: start;
+  }
+
+  .hero-kits__antetitulo {
+    padding: var(--espacio-1) var(--espacio-3);
+    border-radius: var(--radio-pildora);
+    background: rgb(255 255 255 / 0.14);
+    font-size: var(--texto-sm);
+    font-weight: 700;
+  }
+
+  .hero-kits h1 {
+    max-width: 14ch;
+  }
+
+  .hero-kits__subtitulo {
+    max-width: 40ch;
+    font-size: var(--texto-lg);
+    color: rgb(255 255 255 / 0.86);
+  }
+
+  .hero-kits__contenido {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-2);
+  }
+
+  .hero-kits__contenido li {
+    padding: var(--espacio-1) var(--espacio-3);
+    border: 1px solid rgb(255 255 255 / 0.35);
+    border-radius: var(--radio-pildora);
+    font-size: var(--texto-sm);
+  }
+
+  .hero-kits__contenido strong {
+    color: var(--color-dorado);
+  }
+
+  .hero-kits__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-3);
+    margin-top: var(--espacio-2);
+  }
+
+  .hero-kits :focus-visible {
+    outline-color: var(--color-blanco);
+  }
+
+  .hero-kits__dibujo {
+    padding: var(--espacio-6) var(--espacio-5) var(--espacio-4);
+    border-radius: var(--radio-lg);
+    background: var(--color-papel);
+  }
+
+  @media (min-width: 60rem) {
+    .hero-kits {
+      padding-top: var(--espacio-8);
+    }
+
+    .hero-kits__rejilla {
+      grid-template-columns: 1.1fr 1fr;
+      gap: var(--espacio-8);
+    }
+  }
+</style>

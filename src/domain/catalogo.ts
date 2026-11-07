@@ -93,12 +93,18 @@ export interface Producto<TImagen = unknown> {
   disponible: boolean;
   destacado: boolean;
   orden?: number;
+  /** Categoría de aretes administrada en el panel de la API (arracadas, broqueles…). */
+  categoria?: CategoriaProducto;
   fotos: FotoProducto<TImagen>[];
 }
 
 export interface Coleccion {
   id: ColeccionId;
   nombre: string;
+  totalProductos: number;
+}
+
+export interface Categoria extends CategoriaProducto {
   totalProductos: number;
 }
 
@@ -113,6 +119,13 @@ export const GaleriaJsonSchema = z.object({
   fotos: lista(z.object({ imagen: RutaImagenSchema, alt: opcional(z.string().min(1)) })),
 });
 
+/** Categoría de aretes de la API (`GET /api/categorias`). */
+export const CategoriaApiSchema = z.object({
+  slug: z.string().regex(REGEX_ID),
+  nombre: z.string().min(1),
+});
+export type CategoriaProducto = z.infer<typeof CategoriaApiSchema>;
+
 /** Un producto tal como lo devuelve la API (back-aalcuadrado). Los colores ya traen su `id`. */
 export const ProductoApiSchema = z.object({
   slug: z.string().regex(REGEX_ID),
@@ -124,31 +137,45 @@ export const ProductoApiSchema = z.object({
   disponible: z.boolean(),
   destacado: z.boolean(),
   orden: z.number().nullable(),
+  /** `null` si no tiene; falta en manifiestos de antes de las categorías. */
+  categoria: CategoriaApiSchema.nullable().default(null),
   colores: z.array(ColorSchema),
 });
-export type ProductoApi = z.infer<typeof ProductoApiSchema>;
 
 /** Una foto subida desde el panel de la API, ya descargada a `src/content/fotos/api/`. */
 export const FotoApiSchema = z.object({
   imagen: RutaImagenSchema,
-  categoria: z.enum(['productos', 'galeria']),
+  categoria: z.enum(['productos', 'galeria', 'kits']),
   producto: z.string().nullable(),
   color: z.string().nullable(),
   alt: z.string().nullable(),
   orden: z.number(),
 });
-export type FotoApi = z.infer<typeof FotoApiSchema>;
+
+/** Un color o aroma para armar kits (pestaña Kits del panel). Solo llegan los disponibles. */
+const OpcionKitApiSchema = z.object({
+  nombre: z.string().min(1),
+  enJabon: z.boolean(),
+  enVela: z.boolean(),
+});
+
+export const KitsApiSchema = z.object({
+  colores: z.array(OpcionKitApiSchema.extend({ hex: ColorSchema.shape.hex })),
+  aromas: z.array(OpcionKitApiSchema),
+});
 
 /** Lo que escribe `npm run api:sincronizar` en `src/content/catalogo-api.json`. Las fotos ya vienen en orden. */
 export const CatalogoApiJsonSchema = z.object({
   productos: z.array(ProductoApiSchema),
+  /** En el orden del panel. Falta en manifiestos de antes de las categorías. */
+  categorias: z.array(CategoriaApiSchema).default([]),
   fotos: z.array(FotoApiSchema),
+  /** `null` si la API todavía no tiene colores y aromas de kits (o el manifiesto es de antes). */
+  kits: KitsApiSchema.nullable().default(null),
 });
 export type CatalogoApi = z.infer<typeof CatalogoApiJsonSchema>;
 
 /* ---------- Utilidades puras compartidas por la app y los scripts ---------- */
-
-export const EXTENSIONES_IMAGEN = ['jpg', 'jpeg', 'png', 'webp', 'avif'] as const;
 
 const comparador = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
 
@@ -157,7 +184,7 @@ export function ordenNatural(a: string, b: string): number {
   return comparador.compare(a, b);
 }
 
-export function sinExtension(archivo: string): string {
+function sinExtension(archivo: string): string {
   return archivo.replace(/\.[^.]+$/, '');
 }
 
@@ -168,7 +195,7 @@ export function textoDesdeArchivo(archivo: string): string {
 }
 
 /** "Rosa mexicano" → `rosa-mexicano`. Se usa para el `id` de los colores que no lo traen. */
-export function slugificar(texto: string): string {
+function slugificar(texto: string): string {
   return texto
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

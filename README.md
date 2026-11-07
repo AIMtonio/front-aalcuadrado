@@ -1,8 +1,19 @@
 # aalcuadrado
 
-Landing page de **aalcuadrado** (se lee "A al cuadrado"): aretes y accesorios con motivos mexicanos, diseñados e impresos en 3D.
+Sitio de **aalcuadrado** (se lee "A al cuadrado"): manualidades hechas a mano en Mérida. Hoy vende dos líneas de producto:
 
-Está hecha con [Astro](https://astro.build) y es un sitio estático: no hay base de datos. Los productos y sus fotos se guardan en este repositorio y se editan desde **[Pages CMS](https://pagescms.org)**, un panel en el navegador. Todas las compras se hacen por WhatsApp.
+- **Aretes** con motivos mexicanos, diseñados e impresos en 3D. Se piden por WhatsApp.
+- **Kits navideños** de jabón y vela a la medida. Quien visita arma su kit en un formulario y el pedido llega al panel de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) (o por WhatsApp si no hay API).
+
+Está hecho con [Astro](https://astro.build) y es un sitio estático. Los productos y sus fotos vienen de la API al compilar (o de este repositorio, editados desde **[Pages CMS](https://pagescms.org)**).
+
+| Página | Qué tiene |
+| --- | --- |
+| `/` | Portada: qué es aalcuadrado y la elección entre aretes y kits navideños. |
+| `/aretes/` | Catálogo, galería, personalizados, diseñador, mayoreo y preguntas de aretes. |
+| `/kits-navidenos/` | Cómo funciona, el formulario "Arma tu kit" y preguntas de los kits. |
+
+Arriba de todas las páginas, bajo el encabezado, están las pestañas **Aretes · Kits navideños** para cambiar de una a otra. Los enlaces viejos (`/#producto/…`, `/?coleccion=…`) llevan solos a `/aretes/`.
 
 ---
 
@@ -159,7 +170,45 @@ whatsapp: {
 
 Escríbelo **con lada de país y sin espacios, signos ni guiones**. Para un celular de México: `52` + los 10 dígitos.
 
-En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de mayoreo y las preguntas frecuentes.
+En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de mayoreo, las opciones de los kits y las preguntas frecuentes (`preguntas.aretes` y `preguntas.kits`, una lista por página).
+
+### Kits navideños ("Arma tu kit")
+
+Cada kit trae **1 vela aromática de 100 g en frasco (dura de 20 a 25 horas), 2 jabones artesanales y 1 nacimiento pequeño** (`sitio.kits.contenido`), y está listo en una semana. El peso, la duración de la vela y el tiempo de entrega están al inicio de `src/config/sitio.ts`. Los dos jabones salen iguales: el pedido lleva una sola forma, color y aroma de jabón.
+
+No tienen catálogo: quien visita arma su kit en `/kits-navidenos/` y la API guarda el texto tal cual (`POST /api/pedidos`). De dónde sale cada opción:
+
+| Opción | Dónde se cambia |
+| --- | --- |
+| Colores y aromas del jabón y de la vela | Pestaña **Kits** del panel de la API. Solo salen los marcados como disponibles, cada uno en la pieza que le marques (jabón, vela o ambos). Hay que volver a publicar el sitio. |
+| Formas del jabón y toppings de la vela | `sitio.kits` en `src/config/sitio.ts`, porque cada uno tiene su dibujo en la vista previa. |
+| Fotos de "Así quedan" | Pestaña **Kits** del panel (fotos de categoría `kits`). Sin fotos, la sección no sale. |
+
+Si el panel no tiene ningún color o aroma disponible para una pieza (o la API todavía no tiene el módulo de kits), se usan los de `sitio.kits` y el build lo avisa.
+
+```ts
+kits: {
+  jabon: {
+    formas: [{ nombre: 'Copo de nieve', figura: 'copo' }, …],
+    // figura: copo, arbol, santa, jengibre, regalo, estrella, cuadrado, ovalo u ovalo-cavidad
+  },
+  vela: {
+    toppings: [{ nombre: 'Canela en raja', figura: 'canela' }, …],
+    // figura: naranja, canela, anis, flores, rosas, manzanilla, cafe, piedras o ninguno
+  },
+},
+```
+
+`figura` solo decide el dibujo de la vista previa; el nombre es lo que le llega al panel.
+
+- **Con `API_URL`**, el pedido se guarda en la API y aparece en la pestaña **Pedidos** del panel. La API debe tener la rama con `/api/pedidos` desplegada y el dominio del sitio en `CORS_ORIGINS`. Si la API no responde, el visitante ve el error y un botón para mandar el mismo pedido por WhatsApp.
+- **Sin `API_URL`**, el botón dice "Pedir por WhatsApp" y abre el chat con el pedido ya escrito.
+
+Las reglas (campos obligatorios, largo máximo, correo o teléfono válido) están en `src/domain/kits.ts` y son las mismas que valida la API.
+
+### Categorías de aretes
+
+Se administran en la pestaña **Categorías** del panel de la API (arracadas, broqueles…). `npm run api:sincronizar` las descarga junto con los productos y el catálogo muestra un segundo filtro, **Tipo**, cuando sirve (más de una categoría, o una que no tienen todos). Si la API todavía no tiene categorías, el filtro no aparece.
 
 ### Diseñador ("Diseña tus aretes")
 
@@ -206,13 +255,16 @@ src/
     galeria.json             ← fotos de ambiente y su descripción
     fotos/productos/         ← fotos de los productos
     fotos/galeria/           ← fotos de ambiente
-  config/sitio.ts            ← WhatsApp, redes, temporada, precios, preguntas
-  domain/                    ← tipos y reglas de los datos (esquemas Zod)
-  data/                      ← lectura del catálogo (hoy: archivos JSON; mañana: API)
+  config/sitio.ts            ← WhatsApp, redes, temporada, precios, opciones de kits, preguntas
+  config/rutas.ts            ← direcciones de las páginas (/, /aretes/, /kits-navidenos/)
+  domain/                    ← tipos y reglas de los datos (esquemas Zod, pedido de kit)
+  data/                      ← lectura del catálogo (JSON del repositorio y de la API)
   services/pedidos.ts        ← arma los enlaces de WhatsApp
   services/disenos.ts        ← cliente del diseñador con IA (/api/disenos)
-  components/                ← secciones de la página
-  scripts/                   ← interactividad (visor, tarjetas, colores)
+  services/kits.ts           ← cliente de pedidos de kits (/api/pedidos)
+  pages/                     ← portada, aretes/ y kits-navidenos/
+  components/                ← secciones (inicio/, catalogo/, kits/, visor/ y las comunes)
+  scripts/                   ← interactividad (visor, tarjetas, colores, diseñador, kit)
   styles/                    ← colores, tipografía y estilos base
 scripts/                     ← validar productos, generar ejemplos e imagen OG
 docs/arquitectura.md         ← decisiones técnicas y cómo crecer a un backend

@@ -9,8 +9,10 @@
  * el navegador, por ejemplo al cambiar de color en una tarjeta.
  */
 import { sitio } from '@/config/sitio';
+import type { Linea } from '@/config/rutas';
+import type { PedidoKit } from '@/domain/kits';
 
-export interface PedidoProducto {
+interface PedidoProducto {
   nombre: string;
   color?: string;
   /** Enlace profundo al producto, para que quien atiende sepa de cuál se habla. */
@@ -25,11 +27,19 @@ export interface CanalPedidos {
   /** Pedir un diseño hecho en el diseñador del sitio; la imagen la manda el cliente en el chat. */
   disenoIA(idea: string): string;
   mayoreo(): string;
-  /** Contacto general (encabezado, botón flotante, pie de página). */
-  general(): string;
+  /** Mandar (o completar) un pedido de kit navideño; `folio` es el id que regresó la API. */
+  kit(pedido: PedidoKit, folio?: number): string;
+  /** Contacto general (encabezado, botón flotante, pie de página), según la página. */
+  general(linea?: Linea): string;
 }
 
-export class CanalWhatsApp implements CanalPedidos {
+const SALUDO: Record<Linea, string> = {
+  inicio: 'Hola, vi su página y me gustaría hacer un pedido.',
+  aretes: 'Hola, vi su página y me interesan sus aretes.',
+  kits: 'Hola, vi su página y me interesan los kits navideños.',
+};
+
+class CanalWhatsApp implements CanalPedidos {
   constructor(private readonly numero: string) {}
 
   #enlace(mensaje: string) {
@@ -59,8 +69,19 @@ export class CanalWhatsApp implements CanalPedidos {
     return this.#enlace('Hola, me interesa comprar al mayoreo para mi tienda/negocio.');
   }
 
-  general() {
-    return this.#enlace('Hola, vi su página y me interesan sus aretes.');
+  kit(p: PedidoKit, folio?: number) {
+    const lineas = [
+      folio ? `Hola, acabo de mandar el pedido #${folio} de un kit navideño:` : 'Hola, quiero pedir un kit navideño:',
+      `• 2 jabones: ${p.jabonColor.toLowerCase()}, aroma ${p.jabonAroma.toLowerCase()}, forma ${p.jabonForma.toLowerCase()}`,
+      `• 1 vela: ${p.velaColor.toLowerCase()}, aroma ${p.velaAroma.toLowerCase()}, ${p.velaTopping.toLowerCase()}`,
+      '• 1 nacimiento pequeño',
+      `A nombre de ${p.clienteNombre} (${p.clienteContacto}). ¿Me pasan el precio?`,
+    ];
+    return this.#enlace(lineas.join('\n'));
+  }
+
+  general(linea: Linea = 'inicio') {
+    return this.#enlace(SALUDO[linea]);
   }
 }
 

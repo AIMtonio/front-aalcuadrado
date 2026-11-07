@@ -1,4 +1,5 @@
-import type { Coleccion, FotoGaleria, Producto } from '@/domain/catalogo';
+import type { Categoria, Coleccion, FotoGaleria, Producto } from '@/domain/catalogo';
+import type { OpcionesKit } from '@/domain/kits';
 
 /**
  * Puerta de entrada a los datos del catálogo.
@@ -10,8 +11,13 @@ import type { Coleccion, FotoGaleria, Producto } from '@/domain/catalogo';
 export interface CatalogoRepository<TImagen = unknown> {
   /** Productos listos para mostrarse, ya ordenados. */
   listarProductos(): Promise<Producto<TImagen>[]>;
-  obtenerProducto(slug: string): Promise<Producto<TImagen> | undefined>;
   /** Solo colecciones con al menos un producto, en el orden de los filtros. */
   listarColecciones(): Promise<Coleccion[]>;
+  /** Solo categorías con al menos un producto, en el orden del panel. */
+  listarCategorias(): Promise<Categoria[]>;
   listarFotosGaleria(): Promise<FotoGaleria<TImagen>[]>;
+  /** Fotos de kits ya hechos (página de kits), en el orden del panel. */
+  listarFotosKits(): Promise<FotoGaleria<TImagen>[]>;
+  /** Colores y aromas disponibles para el jabón y la vela. */
+  opcionesKit(): Promise<OpcionesKit>;
 }

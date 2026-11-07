@@ -8,7 +8,7 @@ import type { ImageMetadata } from 'astro';
 import type { FotoGaleria, Producto } from '@/domain/catalogo';
 import { formatearPrecio } from '@/services/pedidos';
 
-export interface FotoVisor {
+interface FotoVisor {
   src: string;
   srcset: string;
   ancho: number;
@@ -19,7 +19,7 @@ export interface FotoVisor {
 }
 
 export interface ElementoVisor {
-  /** Lo que aparece en la URL: `producto/<slug>` o `galeria`. */
+  /** Lo que aparece en la URL: `producto/<slug>`, `galeria` o `kits`. */
   clave: string;
   titulo: string;
   precio?: string;
@@ -58,10 +58,15 @@ export async function elementoDeProducto(producto: Producto<ImageMetadata>): Pro
   };
 }
 
-export async function elementoDeGaleria(fotos: FotoGaleria<ImageMetadata>[]): Promise<ElementoVisor> {
+/** Fotos sueltas, sin producto: la galería de aretes (`galeria`) o la de kits (`kits`). */
+export async function elementoDeGaleria(
+  fotos: FotoGaleria<ImageMetadata>[],
+  clave: 'galeria' | 'kits',
+  titulo: string,
+): Promise<ElementoVisor> {
   return {
-    clave: 'galeria',
-    titulo: 'Así se ven',
+    clave,
+    titulo,
     colores: [],
     disponible: true,
     fotos: await Promise.all(fotos.map((f) => fotoVisor(f.src, f.alt))),

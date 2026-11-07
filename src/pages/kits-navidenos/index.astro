@@ -1,0 +1,51 @@
+---
+import Base from '@/layouts/Base.astro';
+import HeroKits from '@/components/kits/HeroKits.astro';
+import ArmaTuKit from '@/components/kits/ArmaTuKit.astro';
+import Galeria from '@/components/Galeria.astro';
+import Visor from '@/components/visor/Visor.astro';
+import { elementoDeGaleria } from '@/components/visor/datos';
+import { catalogo } from '@/data';
+import { rutas } from '@/config/rutas';
+import Proceso from '@/components/Proceso.astro';
+import Preguntas from '@/components/Preguntas.astro';
+import { sitio } from '@/config/sitio';
+
+// Fotos de kits ya hechos (pestaña Kits del panel). Sin fotos, la sección no sale.
+const fotosKits = await catalogo.listarFotosKits();
+const elementosVisor = fotosKits.length ? [await elementoDeGaleria(fotosKits, 'kits', 'Así quedan')] : [];
+const urlPagina = new URL(rutas.kits, Astro.site).href;
+
+const pasos = [
+  {
+    titulo: 'Arma tu kit',
+    texto: 'Elige color, aroma y forma de tus 2 jabones, y color, aroma y topping de la vela. El nacimiento va incluido.',
+  },
+  {
+    titulo: 'Te cotizamos',
+    texto: 'Te escribimos con el precio. No pagas nada hasta confirmar.',
+  },
+  {
+    titulo: 'Lo hacemos a mano',
+    texto: `En ${sitio.kits.entrega} vertimos tus jabones y tu vela, los empacamos con tu nacimiento y te avisamos para que lo recojas en ${sitio.ciudad}.`,
+  },
+];
+---
+
+<Base
+  linea="kits"
+  titulo={`${sitio.kits.nombre} de jabón y vela · ${sitio.nombre}`}
+  descripcion={`${sitio.kits.descripcion} Arma el tuyo en línea y te lo cotizamos.`}
+>
+  <HeroKits />
+  <Galeria
+    fotos={fotosKits}
+    id="kits"
+    titulo="Así quedan"
+    texto="Algunos kits que ya hicimos. El tuyo lo armamos con los colores y aromas que elijas."
+  />
+  <Proceso id="como-funciona" titulo="Cómo funciona" pasos={pasos} />
+  <ArmaTuKit />
+  <Preguntas preguntas={sitio.preguntas.kits} alterna={false} />
+  {elementosVisor.length > 0 && <Visor elementos={elementosVisor} urlSitio={urlPagina} />}
+</Base>

@@ -1,7 +1,7 @@
 /**
  * Visor de fotos (lightbox) sobre <dialog> nativo.
  *
- * - Enlace profundo: #producto/<slug>/<n> o #galeria/<n>. Abrir el visor
+ * - Enlace profundo: #producto/<slug>/<n>, #galeria/<n> o #kits/<n>. Abrir el visor
  *   agrega una entrada al historial, así que "atrás" lo cierra.
  * - Navegación con teclado, botones, miniaturas y deslizando el dedo.
  * - Zoom con doble clic / doble toque, pellizco y Ctrl + rueda; arrastre con zoom.
@@ -14,7 +14,7 @@ const ESCALA_MAX = 4;
 const ESCALA_DOBLE_TOQUE = 2.5;
 const UMBRAL_DESLIZAR = 50;
 
-const REGEX_HASH = /^#(producto\/[a-z0-9-]+|galeria)(?:\/(\d+))?$/i;
+const REGEX_HASH = /^#(producto\/[a-z0-9-]+|galeria|kits)(?:\/(\d+))?$/i;
 
 export function iniciarVisor() {
   const dialogo = document.querySelector<HTMLDialogElement>('#visor');
@@ -103,7 +103,7 @@ export function iniciarVisor() {
 
   // Recordar qué abrió el visor para devolverle el foco al cerrar.
   document.addEventListener('click', (e) => {
-    const enlace = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#producto/"], a[href^="#galeria/"]');
+    const enlace = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#producto/"], a[href^="#galeria/"], a[href^="#kits/"]');
     if (!enlace) return;
     origen = enlace.closest<HTMLElement>('[data-tarjeta]')?.querySelector<HTMLElement>('[data-foto]:not([tabindex])') ?? enlace;
     conHistorial = true;
@@ -159,7 +159,7 @@ export function iniciarVisor() {
   function pintarFicha() {
     const el = elemento!;
     titulo.textContent = el.titulo;
-    precio.textContent = el.clave === 'galeria' ? '' : (el.precio ?? 'Pregunta por WhatsApp');
+    precio.textContent = !slugDe(el.clave) ? '' : (el.precio ?? 'Pregunta por WhatsApp');
 
     colores.querySelectorAll('button').forEach((b) => b.remove());
     const slug = slugDe(el.clave);
@@ -179,7 +179,7 @@ export function iniciarVisor() {
       colores.append(boton);
     }
 
-    pedir.hidden = el.clave === 'galeria';
+    pedir.hidden = !slugDe(el.clave);
     pedirTexto.textContent = el.disponible ? 'Pedir por WhatsApp' : 'Avísame por WhatsApp';
     actualizarPedido();
     pintarMiniaturas();

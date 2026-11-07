@@ -5,36 +5,57 @@ import type { FotoGaleria } from '@/domain/catalogo';
 
 interface Props {
   fotos: FotoGaleria<ImageMetadata>[];
+  /** Por defecto, "Así se ven" de la página de aretes. */
+  id?: string;
+  titulo?: string;
+  texto?: string;
+  /** Si cada foto abre el visor (`#<id>/<n>`). Solo donde la página tiene `<Visor>`. */
+  ampliar?: boolean;
 }
 
-const { fotos } = Astro.props;
+const {
+  fotos,
+  id = 'galeria',
+  titulo = 'Así se ven',
+  texto = 'En el puesto, en su caja y recién salidos de la impresora.',
+  ampliar = true,
+} = Astro.props;
 ---
 
 {
   fotos.length > 0 && (
-    <section class="seccion seccion--alterna" id="galeria" aria-labelledby="galeria-titulo">
+    <section class="seccion seccion--alterna" id={id} aria-labelledby={`${id}-titulo`}>
       <div class="contenedor">
         <div class="encabezado-seccion">
-          <h2 id="galeria-titulo">Así se ven</h2>
-          <p>En el puesto, en su caja y recién salidos de la impresora.</p>
+          <h2 id={`${id}-titulo`}>{titulo}</h2>
+          <p>{texto}</p>
         </div>
 
         <ul class="mosaico" role="list">
-          {fotos.map((foto, i) => (
-            <li>
-              <a href={`#galeria/${i + 1}`} class="mosaico__foto">
-                <Picture
-                  src={foto.src}
-                  alt={foto.alt}
-                  formats={['avif', 'webp']}
-                  widths={[320, 480, 640, 900]}
-                  sizes="(min-width: 76rem) 24rem, (min-width: 60rem) 31vw, (min-width: 36rem) 46vw, 46vw"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </a>
-            </li>
-          ))}
+          {fotos.map((foto, i) => {
+            const imagen = (
+              <Picture
+                src={foto.src}
+                alt={foto.alt}
+                formats={['avif', 'webp']}
+                widths={[320, 480, 640, 900]}
+                sizes="(min-width: 76rem) 24rem, (min-width: 60rem) 31vw, (min-width: 36rem) 46vw, 46vw"
+                loading="lazy"
+                decoding="async"
+              />
+            );
+            return (
+              <li>
+                {ampliar ? (
+                  <a href={`#${id}/${i + 1}`} class="mosaico__foto">
+                    {imagen}
+                  </a>
+                ) : (
+                  <div class="mosaico__foto mosaico__foto--fija">{imagen}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>
@@ -65,7 +86,11 @@ const { fotos } = Astro.props;
     transition: transform var(--duracion-media) var(--curva-salida);
   }
 
-  .mosaico__foto:hover :global(img) {
+  .mosaico__foto--fija {
+    cursor: default;
+  }
+
+  a.mosaico__foto:hover :global(img) {
     transform: scale(1.03);
   }
 

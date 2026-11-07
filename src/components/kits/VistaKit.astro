@@ -1,0 +1,487 @@
+---
+/**
+ * Dibujo de un kit navideño: dos jabones iguales (con la forma elegida), una vela
+ * en frasco (con su topping) y un nacimiento pequeño. Los colores salen de `--jabon`
+ * y `--vela`; `src/scripts/kit.ts` los cambia y marca con `data-activa` la forma y
+ * el topping elegidos.
+ */
+import { FIGURAS_JABON, FIGURAS_TOPPING, type FiguraJabon, type FiguraTopping } from '@/domain/kits';
+
+interface Props {
+  jabon: string;
+  vela: string;
+  forma: FiguraJabon;
+  topping: FiguraTopping;
+  class?: string;
+  /** Texto para lectores de pantalla. Si se omite, el dibujo es decorativo. */
+  etiqueta?: string;
+}
+
+const { jabon, vela, forma, topping, class: clase, etiqueta } = Astro.props;
+
+/** Puntos de una estrella de `n` picos centrada en (cx, cy). */
+function estrella(cx: number, cy: number, exterior: number, interior: number, n = 5): string {
+  return Array.from({ length: n * 2 }, (_, i) => {
+    const radio = i % 2 === 0 ? exterior : interior;
+    const angulo = (Math.PI / n) * i - Math.PI / 2;
+    return `${(cx + radio * Math.cos(angulo)).toFixed(1)},${(cy + radio * Math.sin(angulo)).toFixed(1)}`;
+  }).join(' ');
+}
+
+const brazosCopo = [0, 60, 120, 180, 240, 300];
+const formas = new Set<string>(FIGURAS_JABON);
+const toppings = new Set<string>(FIGURAS_TOPPING);
+const activa = (grupo: Set<string>, valor: string, actual: string) => (grupo.has(valor) && valor === actual ? '' : undefined);
+
+// Los dos jabones del kit: el de atrás, más chico; el de enfrente, a tamaño normal.
+// Las formas están dibujadas centradas en (95, 128) y apoyadas en y≈186.
+const jabones = [
+  { transform: 'translate(116 84) scale(0.62)', clase: 'vista-kit__jabon--atras' },
+  { transform: undefined, clase: undefined },
+];
+---
+
+<svg
+  class:list={['vista-kit', clase]}
+  viewBox="0 0 440 240"
+  style={`--jabon:${jabon};--vela:${vela}`}
+  role={etiqueta ? 'img' : undefined}
+  aria-label={etiqueta}
+  aria-hidden={etiqueta ? undefined : 'true'}
+  focusable="false"
+  data-vista-kit
+>
+  <ellipse cx="176" cy="201" rx="40" ry="6" class="vista-kit__sombra" />
+  <ellipse cx="95" cy="204" rx="62" ry="9" class="vista-kit__sombra" />
+  <ellipse cx="290" cy="204" rx="62" ry="9" class="vista-kit__sombra" />
+  <ellipse cx="396" cy="204" rx="40" ry="6" class="vista-kit__sombra" />
+
+  <!-- Dos jabones: una forma por figura -->
+  {
+    jabones.map((j) => (
+      <g class:list={['vista-kit__jabon', j.clase]} transform={j.transform}>
+        <g data-forma="copo" data-activa={activa(formas, 'copo', forma)}>
+          {brazosCopo.map((grados) => (
+            <g transform={`rotate(${grados} 95 128)`}>
+              <path class="vista-kit__trazo" d="M95 128V62M95 84l-14-14M95 84l14-14" />
+            </g>
+          ))}
+          <circle cx="95" cy="128" r="18" />
+        </g>
+
+        <g data-forma="arbol" data-activa={activa(formas, 'arbol', forma)}>
+          <path d="M95 46 140 106h-20l30 48h-38v26H78v-26H40l30-48H50Z" />
+          <path class="vista-kit__brillo" d="M95 62 70 96" />
+        </g>
+
+        <g data-forma="santa" data-activa={activa(formas, 'santa', forma)}>
+          <circle cx="95" cy="132" r="40" />
+          <path d="M55 130c2 54 78 66 80 0-14 24-66 24-80 0Z" />
+          <path d="M56 106c4-38 42-60 72-48l8 48Z" />
+          <rect x="48" y="98" width="94" height="20" rx="10" />
+          <circle cx="130" cy="57" r="11" />
+          <rect x="48" y="98" width="94" height="20" rx="10" class="vista-kit__relieve" />
+          <circle cx="130" cy="57" r="11" class="vista-kit__relieve" />
+          <path d="M55 130c2 54 78 66 80 0-14 24-66 24-80 0Z" class="vista-kit__relieve" />
+          <circle cx="82" cy="128" r="3.5" class="vista-kit__ojo" />
+          <circle cx="108" cy="128" r="3.5" class="vista-kit__ojo" />
+          <circle cx="95" cy="138" r="5" class="vista-kit__relieve" />
+        </g>
+
+        <g data-forma="jengibre" data-activa={activa(formas, 'jengibre', forma)}>
+          <circle cx="95" cy="70" r="22" />
+          <rect x="42" y="96" width="106" height="22" rx="11" />
+          <rect x="70" y="88" width="50" height="62" rx="22" />
+          <rect x="66" y="128" width="24" height="58" rx="12" transform="rotate(14 78 140)" />
+          <rect x="100" y="128" width="24" height="58" rx="12" transform="rotate(-14 112 140)" />
+          <path class="vista-kit__glaseado" d="M86 77q9 7 18 0M52 101v12M138 101v12M70 172l12-4M120 172l-12-4" />
+          <circle cx="87" cy="66" r="3" class="vista-kit__ojo" />
+          <circle cx="103" cy="66" r="3" class="vista-kit__ojo" />
+          <circle cx="95" cy="106" r="4" class="vista-kit__boton" />
+          <circle cx="95" cy="124" r="4" class="vista-kit__boton" />
+        </g>
+
+        <g data-forma="regalo" data-activa={activa(formas, 'regalo', forma)}>
+          <ellipse cx="80" cy="74" rx="17" ry="10" transform="rotate(-20 80 74)" />
+          <ellipse cx="110" cy="74" rx="17" ry="10" transform="rotate(20 110 74)" />
+          <rect x="48" y="98" width="94" height="84" rx="8" />
+          <rect x="42" y="84" width="106" height="22" rx="6" />
+          <rect x="88" y="84" width="14" height="98" class="vista-kit__relieve" />
+          <circle cx="95" cy="80" r="7" class="vista-kit__relieve" />
+          <rect x="44" y="104" width="102" height="3" class="vista-kit__linea" />
+        </g>
+
+        <g data-forma="estrella" data-activa={activa(formas, 'estrella', forma)}>
+          <polygon points={estrella(95, 128, 70, 30)} />
+          <path class="vista-kit__brillo" d="M84 86 76 104" />
+        </g>
+
+        <g data-forma="cuadrado" data-activa={activa(formas, 'cuadrado', forma)}>
+          <rect x="45" y="80" width="100" height="100" rx="18" />
+          <rect x="58" y="93" width="74" height="74" rx="12" class="vista-kit__marca" />
+          <path class="vista-kit__brillo" d="M58 112v-6q0-10 10-10h8" />
+        </g>
+
+        <g data-forma="ovalo" data-activa={activa(formas, 'ovalo', forma)}>
+          <ellipse cx="95" cy="142" rx="60" ry="42" />
+          <path class="vista-kit__brillo" d="M52 130a48 32 0 0 1 26-20" />
+        </g>
+
+        <g data-forma="ovalo-cavidad" data-activa={activa(formas, 'ovalo-cavidad', forma)}>
+          <ellipse cx="95" cy="142" rx="60" ry="42" />
+          <ellipse cx="95" cy="144" rx="38" ry="24" class="vista-kit__cavidad" />
+          <path class="vista-kit__brillo vista-kit__brillo--fino" d="M62 150a38 24 0 0 0 66 0" />
+          <path class="vista-kit__brillo" d="M48 128a50 32 0 0 1 22-18" />
+        </g>
+      </g>
+    ))
+  }
+
+  <!-- Vela en frasco -->
+  <g transform="translate(40 0)">
+    <rect x="196" y="86" width="108" height="114" rx="16" class="vista-kit__frasco" />
+    <rect x="203" y="118" width="94" height="76" rx="11" class="vista-kit__cera" />
+    <ellipse cx="250" cy="120" rx="47" ry="8" class="vista-kit__cera vista-kit__cera-arriba" />
+    <rect x="207" y="96" width="7" height="62" rx="3.5" class="vista-kit__reflejo" />
+    <rect x="226" y="150" width="48" height="22" rx="4" class="vista-kit__etiqueta" />
+    <rect x="244" y="157" width="8" height="8" rx="1.6" fill="#3B2A9B" />
+    <rect x="254" y="155" width="5" height="5" rx="1" fill="#E4007C" />
+
+    <g>
+      <g data-topping="naranja" data-activa={activa(toppings, 'naranja', topping)}>
+        <circle cx="228" cy="117" r="10" class="vista-kit__naranja" />
+        <path d="M228 109v16M220 117h16M222.5 111.5l11 11M233.5 111.5l-11 11" class="vista-kit__gajos" />
+        <circle cx="273" cy="116" r="8.5" class="vista-kit__naranja" />
+        <path d="M273 109.5v13M266.5 116h13" class="vista-kit__gajos" />
+      </g>
+      <g data-topping="canela" data-activa={activa(toppings, 'canela', topping)}>
+        <rect x="226" y="111" width="46" height="7" rx="3.5" transform="rotate(-10 249 114)" class="vista-kit__canela" />
+        <rect x="230" y="114" width="42" height="7" rx="3.5" transform="rotate(8 251 117)" class="vista-kit__canela" />
+      </g>
+      <g data-topping="anis" data-activa={activa(toppings, 'anis', topping)}>
+        <polygon points={estrella(231, 117, 10, 3.5, 8)} class="vista-kit__anis" />
+        <polygon points={estrella(270, 115, 8.5, 3, 8)} class="vista-kit__anis" />
+      </g>
+      <g data-topping="flores" data-activa={activa(toppings, 'flores', topping)}>
+        {
+          [
+            [228, 116, '#E4007C'],
+            [252, 121, '#9B7BD4'],
+            [272, 114, '#F2B705'],
+          ].map(([x, y, color]) => (
+            <g fill={color as string}>
+              {[0, 72, 144, 216, 288].map((g) => (
+                <circle cx={x} cy={(y as number) - 4.5} r="3.6" transform={`rotate(${g} ${x} ${y})`} />
+              ))}
+              <circle cx={x} cy={y} r="2.4" fill="#FFF6D8" />
+            </g>
+          ))
+        }
+      </g>
+      <g data-topping="rosas" data-activa={activa(toppings, 'rosas', topping)}>
+        {
+          [
+            [229, 116],
+            [252, 121],
+            [272, 114],
+          ].map(([x, y]) => (
+            <g transform={`translate(${x} ${y})`}>
+              <ellipse cx="6" cy="3" rx="4" ry="2" fill="#4E7A3A" transform="rotate(25 6 3)" />
+              <circle r="6" class="vista-kit__rosa" />
+              <path d="M-2.5 0.5a2.5 2.5 0 1 1 2.5 2.5M-4 -1a4.5 4.5 0 0 1 7-2" class="vista-kit__rosa-petalos" />
+            </g>
+          ))
+        }
+      </g>
+      <g data-topping="manzanilla" data-activa={activa(toppings, 'manzanilla', topping)}>
+        {
+          [
+            [229, 116],
+            [251, 121],
+            [272, 114],
+          ].map(([x, y]) => (
+            <g transform={`translate(${x} ${y})`}>
+              {[0, 45, 90, 135, 180, 225, 270, 315].map((g) => (
+                <ellipse cx="0" cy="-4.5" rx="1.8" ry="3.4" fill="#FFFDF5" stroke="rgb(23 20 43 / 0.15)" stroke-width="0.5" transform={`rotate(${g})`} />
+              ))}
+              <circle r="2.6" fill="#F2B705" />
+            </g>
+          ))
+        }
+      </g>
+      <g data-topping="cafe" data-activa={activa(toppings, 'cafe', topping)}>
+        {
+          [
+            [226, 116, -20],
+            [238, 120, 30],
+            [250, 114, 70],
+            [262, 120, -40],
+            [274, 115, 15],
+            [246, 123, -70],
+          ].map(([x, y, g]) => (
+            <g transform={`translate(${x} ${y}) rotate(${g})`}>
+              <ellipse rx="4.6" ry="3.2" class="vista-kit__cafe" />
+              <path d="M-3.4 0q1.7-1.4 3.4 0t3.4 0" class="vista-kit__cafe-linea" />
+            </g>
+          ))
+        }
+      </g>
+      <g data-topping="piedras" data-activa={activa(toppings, 'piedras', topping)}>
+        {
+          [
+            [227, 117, 7, 4.5, '#8E949A'],
+            [241, 121, 6, 4, '#C9C4BC'],
+            [256, 115, 7.5, 4.8, '#6F757B'],
+            [270, 120, 6.5, 4.2, '#B4ADA3'],
+          ].map(([x, y, rx, ry, color]) => (
+            <g>
+              <ellipse cx={x} cy={y} rx={rx} ry={ry} fill={color as string} />
+              <ellipse cx={(x as number) - 2} cy={(y as number) - 1.5} rx={(rx as number) / 2.6} ry="1.1" fill="rgb(255 255 255 / 0.45)" />
+            </g>
+          ))
+        }
+      </g>
+    </g>
+
+    <path d="M250 120v-15" class="vista-kit__pabilo" />
+    <g class="vista-kit__flama">
+      <path d="M250 70c11 14 13 23 0 33-13-10-11-19 0-33Z" fill="#F2A33A" />
+      <path d="M250 84c5 7 6 11 0 16-6-5-5-9 0-16Z" fill="#FFE7A3" />
+    </g>
+  </g>
+
+  <!-- Nacimiento pequeño -->
+  <g class="vista-kit__nacimiento">
+    <polygon points={estrella(396, 110, 8, 3, 5)} class="vista-kit__estrella-belen" />
+    <path d="M362 152 396 124l34 28M367 148v54M425 148v54" class="vista-kit__portal" />
+    <circle cx="380" cy="168" r="5.5" fill="#F3D9BC" />
+    <path d="M371 202q9-34 18 0Z" fill="#4F74B8" />
+    <circle cx="412" cy="165" r="5.5" fill="#F3D9BC" />
+    <path d="M403 202q9-38 18 0Z" fill="#8A5A3B" />
+    <rect x="388" y="191" width="16" height="9" rx="2" fill="#C9A227" />
+    <circle cx="396" cy="189" r="4" fill="#F3D9BC" />
+  </g>
+
+  <!-- Destellos navideños -->
+  <g class="vista-kit__destellos">
+    <polygon points={estrella(212, 54, 7, 2.5, 4)} />
+    <polygon points={estrella(428, 70, 6, 2, 4)} />
+    <polygon points={estrella(28, 70, 5, 1.8, 4)} />
+  </g>
+</svg>
+
+<style>
+  .vista-kit {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .vista-kit [data-forma],
+  .vista-kit [data-topping] {
+    display: none;
+  }
+
+  .vista-kit [data-activa] {
+    display: inline;
+  }
+
+  .vista-kit__sombra {
+    fill: rgb(23 20 43 / 0.08);
+  }
+
+  /* Las formas se arman con varias piezas: el contorno sale de una sombra del conjunto, no de cada pieza. */
+  .vista-kit__jabon {
+    fill: var(--jabon);
+    filter: drop-shadow(0 0 0.7px rgb(23 20 43 / 0.55)) drop-shadow(0 3px 2px rgb(23 20 43 / 0.12));
+    transition: fill var(--duracion-media);
+  }
+
+  .vista-kit__jabon--atras {
+    filter: drop-shadow(0 0 1px rgb(23 20 43 / 0.55)) brightness(0.93);
+  }
+
+  .vista-kit__jabon .vista-kit__trazo {
+    fill: none;
+    stroke: var(--jabon);
+    stroke-width: 15;
+    stroke-linecap: round;
+    transition: stroke var(--duracion-media);
+  }
+
+  .vista-kit__brillo {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.55);
+    stroke-width: 6;
+    stroke-linecap: round;
+  }
+
+  .vista-kit__brillo--fino {
+    stroke-width: 3;
+    stroke: rgb(255 255 255 / 0.4);
+  }
+
+  /* Detalles en relieve del molde: tono más claro u oscuro del mismo jabón. */
+  .vista-kit__relieve {
+    fill: rgb(255 255 255 / 0.35);
+  }
+
+  .vista-kit__cavidad {
+    fill: rgb(23 20 43 / 0.18);
+  }
+
+  .vista-kit__linea {
+    fill: rgb(23 20 43 / 0.14);
+  }
+
+  .vista-kit__marca {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.4);
+    stroke-width: 3;
+  }
+
+  .vista-kit__ojo {
+    fill: rgb(23 20 43 / 0.5);
+  }
+
+  .vista-kit__glaseado {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.8);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .vista-kit__boton {
+    fill: rgb(255 255 255 / 0.8);
+  }
+
+  .vista-kit__frasco {
+    fill: rgb(255 255 255 / 0.6);
+    stroke: rgb(23 20 43 / 0.22);
+    stroke-width: 2;
+  }
+
+  .vista-kit__cera {
+    fill: var(--vela);
+    stroke: rgb(23 20 43 / 0.12);
+    stroke-width: 1.5;
+    transition: fill var(--duracion-media);
+  }
+
+  .vista-kit__cera-arriba {
+    filter: brightness(1.08);
+  }
+
+  .vista-kit__reflejo {
+    fill: rgb(255 255 255 / 0.7);
+  }
+
+  .vista-kit__etiqueta {
+    fill: var(--color-papel);
+    stroke: rgb(23 20 43 / 0.15);
+  }
+
+  .vista-kit__naranja {
+    fill: #f08a24;
+    stroke: #fbd38d;
+    stroke-width: 2;
+  }
+
+  .vista-kit__gajos {
+    stroke: #fbd38d;
+    stroke-width: 1.2;
+  }
+
+  .vista-kit__canela {
+    fill: #8a4b2a;
+    stroke: #5e3018;
+    stroke-width: 1;
+  }
+
+  .vista-kit__anis {
+    fill: #6b3a22;
+  }
+
+  .vista-kit__rosa {
+    fill: #a3203a;
+  }
+
+  .vista-kit__rosa-petalos {
+    fill: none;
+    stroke: #e3758a;
+    stroke-width: 1.1;
+    stroke-linecap: round;
+  }
+
+  .vista-kit__cafe {
+    fill: #4a2c1d;
+  }
+
+  .vista-kit__cafe-linea {
+    fill: none;
+    stroke: #8a5a3b;
+    stroke-width: 0.9;
+  }
+
+  .vista-kit__pabilo {
+    stroke: var(--color-tinta);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .vista-kit__portal {
+    fill: none;
+    stroke: #8a5a3b;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .vista-kit__estrella-belen,
+  .vista-kit__destellos {
+    fill: var(--color-dorado);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .vista-kit__flama {
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+      animation: flama 1.6s ease-in-out infinite alternate;
+    }
+
+    .vista-kit__destellos polygon {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: destello 2.4s ease-in-out infinite;
+    }
+
+    .vista-kit__destellos polygon:nth-child(2) {
+      animation-delay: 0.8s;
+    }
+
+    .vista-kit__destellos polygon:nth-child(3) {
+      animation-delay: 1.6s;
+    }
+  }
+
+  @keyframes flama {
+    from {
+      transform: scale(1, 1) rotate(-2deg);
+    }
+    to {
+      transform: scale(0.94, 1.06) rotate(2deg);
+    }
+  }
+
+  @keyframes destello {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.7);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+</style>

@@ -14,14 +14,19 @@ const iconos = {
   siguiente: '<path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
   mas: '<path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
-  lupa: '<circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5M8.5 11h5M11 8.5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   lapiz:
     '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m13.5 6.5 4 4" fill="none" stroke="currentColor" stroke-width="2"/>',
+  arete:
+    '<path d="M12 2.5a2.5 2.5 0 0 1 2.5 2.5c0 1.4-1 2-2.5 2.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m12 10 5 5.5-5 5.5-5-5.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 7.6V10" fill="none" stroke="currentColor" stroke-width="2"/>',
+  vela:
+    '<rect x="7" y="11" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11V8.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 2.5c1.6 1.9 2 3 0 4.6-2-1.6-1.6-2.7 0-4.6Z" fill="currentColor"/>',
+  flecha: '<path d="M5 12h14m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  palomita: '<path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
   descargar:
     '<path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
 } as const;
 
-export type NombreIcono = keyof typeof iconos;
+type NombreIcono = keyof typeof iconos;
 
 interface Props {
   nombre: NombreIcono;

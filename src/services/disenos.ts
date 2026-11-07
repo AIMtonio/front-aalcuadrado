@@ -5,6 +5,7 @@
  * token. La llave de OpenAI vive solo en la API. Puro (solo `fetch`) para
  * poder usarlo en el navegador.
  */
+import { esLimiteDeApi, textoDeError, urlDeApi } from './api';
 
 export interface EstadoDisenos {
   /** `false` si la API no tiene llave de OpenAI o ya se acabó el cupo del día. */
@@ -39,13 +40,11 @@ const MENSAJES: Record<number, string> = {
 };
 const MENSAJE_GENERICO = 'Algo salió mal al crear tu diseño. Intenta de nuevo.';
 
-/** Saca el texto de `{ message }` de NestJS (texto o lista) sin prefijos como "texto: ". */
+/** El mensaje de la API sin prefijos como "texto: ". */
 function mensajeDeApi(cuerpo: unknown): string | undefined {
-  const message = (cuerpo as { message?: unknown } | null)?.message;
-  const texto = Array.isArray(message) ? message.filter((m) => typeof m === 'string').join(' ') : message;
-  if (typeof texto !== 'string' || !texto.trim()) return undefined;
-  // El límite por IP de NestJS responde en inglés ("ThrottlerException: Too Many Requests").
-  if (/^ThrottlerException/i.test(texto)) return 'Ya creaste varios diseños seguidos. Espera unos minutos y vuelve a intentarlo.';
+  const texto = textoDeError(cuerpo);
+  if (!texto) return undefined;
+  if (esLimiteDeApi(texto)) return 'Ya creaste varios diseños seguidos. Espera unos minutos y vuelve a intentarlo.';
   // El sitio no menciona a la IA: esos mensajes se cambian por uno genérico.
   if (/\bIA\b|\bAI\b|OpenAI/i.test(texto)) return undefined;
   const limpio = texto.replace(/^texto:\s*/i, '').trim();
@@ -57,7 +56,7 @@ export class ClienteDisenos {
 
   /** `baseUrl`: la URL pública de la API, sin `/api` (por ejemplo `https://api.tudominio.com`). */
   constructor(baseUrl: string) {
-    this.#url = `${baseUrl.replace(/\/+$/, '')}/api/disenos`;
+    this.#url = urlDeApi(baseUrl, 'disenos');
   }
 
   async estado(signal?: AbortSignal): Promise<EstadoDisenos> {

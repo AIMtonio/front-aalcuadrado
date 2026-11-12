@@ -2,10 +2,11 @@
  * Configuración general de aalcuadrado.
  *
  * Todo lo que cambia seguido (número de WhatsApp, redes, precios,
- * promoción de temporada, opciones de los kits, preguntas frecuentes) vive aquí.
+ * promoción de temporada, opciones de los kits y las velas, preguntas frecuentes) vive aquí.
  * Los valores entre [CORCHETES] están pendientes de confirmar.
  */
 import type { FiguraJabon, FiguraTopping } from '@/domain/kits';
+import type { PresentacionVela, TipoVela } from '@/domain/velas';
 
 /** Datos de la vela de los kits; se repiten en varios textos del sitio. */
 const vela = {
@@ -15,6 +16,24 @@ const vela = {
 };
 /** Cuánto tarda un kit desde que se confirma el pedido. */
 const ENTREGA_KITS = 'una semana';
+/** Cuánto tarda una vela personalizada desde que se confirma el pedido. */
+const ENTREGA_VELAS = 'una semana'; // [CONFIRMAR]
+
+/**
+ * Toppings de las velas (de los kits y las individuales). Cada `figura` tiene su
+ * dibujo en las vistas previas (src/components/velas/Toppings.astro). La API guarda el texto tal cual.
+ */
+const TOPPINGS = [
+  { nombre: 'Naranja deshidratada', figura: 'naranja' },
+  { nombre: 'Canela en raja', figura: 'canela' },
+  { nombre: 'Anís estrella', figura: 'anis' },
+  { nombre: 'Flores secas', figura: 'flores' },
+  { nombre: 'Rosas secas', figura: 'rosas' },
+  { nombre: 'Manzanilla', figura: 'manzanilla' },
+  { nombre: 'Granos de café', figura: 'cafe' },
+  { nombre: 'Piedras de río', figura: 'piedras' },
+  { nombre: 'Sin topping', figura: 'ninguno' },
+] as const satisfies readonly { nombre: string; figura: FiguraTopping }[];
 
 export const sitio = {
   /** Nombre de la marca. Siempre en minúsculas. */
@@ -23,7 +42,7 @@ export const sitio = {
   nombreLeido: 'A al cuadrado',
   creador: 'Antonio Alonso',
   descripcion:
-    'Manualidades hechas a mano en Mérida: aretes con motivos mexicanos impresos en 3D y kits navideños de jabón y vela, en los colores y aromas que elijas.',
+    'Manualidades hechas a mano en Mérida: aretes con motivos mexicanos impresos en 3D, kits navideños de jabón y vela y velas personalizadas, en los colores y aromas que elijas.',
   /** Ciudad que aparece en "Hecho en …". */
   ciudad: 'Mérida',
 
@@ -123,18 +142,37 @@ export const sitio = {
         { nombre: 'Dorado', hex: '#C9A227' },
       ],
       aromas: ['Vainilla', 'Canela', 'Manzana con canela', 'Galleta de jengibre', 'Pino'],
-      toppings: [
-        { nombre: 'Naranja deshidratada', figura: 'naranja' },
-        { nombre: 'Canela en raja', figura: 'canela' },
-        { nombre: 'Anís estrella', figura: 'anis' },
-        { nombre: 'Flores secas', figura: 'flores' },
-        { nombre: 'Rosas secas', figura: 'rosas' },
-        { nombre: 'Manzanilla', figura: 'manzanilla' },
-        { nombre: 'Granos de café', figura: 'cafe' },
-        { nombre: 'Piedras de río', figura: 'piedras' },
-        { nombre: 'Sin topping', figura: 'ninguno' },
-      ] satisfies { nombre: string; figura: FiguraTopping }[],
+      toppings: TOPPINGS,
     },
+  },
+
+  /**
+   * Velas personalizadas. Tampoco tienen catálogo: quien visita elige tipo, tamaño o
+   * molde, color, aroma y topping, y el pedido llega a la API (`POST /api/velas/pedidos`).
+   * - Tamaños y moldes salen de la pestaña Velas del panel (con sus gramos); los de
+   *   aquí solo se usan si la API todavía no tiene el módulo de velas.
+   * - Colores y aromas son los de los kits marcados "para la vela".
+   */
+  velas: {
+    nombre: 'Velas personalizadas',
+    descripcion: 'Velas aromáticas hechas a mano en recipiente, en jícara o de molde, en el tamaño, color, aroma y topping que elijas.',
+    entrega: ENTREGA_VELAS,
+    /** Cómo se presenta cada tipo en el formulario. */
+    tipos: {
+      recipiente: { descripcion: 'En frasco de vidrio, en tres tamaños. Se puede marmolear.' },
+      molde: { descripcion: 'Con forma, sin recipiente. Por ahora, tipo cupcake.' },
+      jicara: { descripcion: 'En media jícara natural, en tres tamaños.' },
+    } satisfies Record<TipoVela, { descripcion: string }>,
+    presentaciones: [
+      { tipo: 'recipiente', nombre: 'Pequeña', gramos: null, marmoleable: true },
+      { tipo: 'recipiente', nombre: 'Mediana', gramos: null, marmoleable: true },
+      { tipo: 'recipiente', nombre: 'Grande', gramos: null, marmoleable: true },
+      { tipo: 'molde', nombre: 'Cupcake', gramos: null, marmoleable: false },
+      { tipo: 'jicara', nombre: 'Pequeña', gramos: null, marmoleable: false },
+      { tipo: 'jicara', nombre: 'Mediana', gramos: null, marmoleable: false },
+      { tipo: 'jicara', nombre: 'Grande', gramos: null, marmoleable: false },
+    ] satisfies PresentacionVela[],
+    toppings: TOPPINGS,
   },
 
   /** Preguntas frecuentes de cada página, en el orden en que aparecen. */
@@ -204,6 +242,41 @@ export const sitio = {
       },
       {
         pregunta: '¿Dónde lo recojo?',
+        respuesta: 'De momento puedes recoger en punto de entrega dentro de Mérida.',
+      },
+    ],
+    velas: [
+      {
+        pregunta: '¿Cuánto cuesta una vela?',
+        respuesta:
+          'Depende del tipo, el tamaño y lo que elijas. Al recibir tu pedido te escribimos con el precio y la fecha de entrega; no pagas nada hasta confirmarlo.',
+      },
+      {
+        pregunta: '¿Qué diferencia hay entre los tipos?',
+        respuesta:
+          'La de recipiente va en un frasco de vidrio que puedes reusar; la de jícara, en media jícara natural; y la de molde no lleva recipiente: es la vela con forma (por ahora, tipo cupcake).',
+      },
+      {
+        pregunta: '¿Qué es una vela marmoleada?',
+        respuesta:
+          'Una vela con vetas de un segundo color, como mármol. Se puede pedir en las velas de recipiente; en jícara no se hace porque no se apreciaría.',
+      },
+      {
+        pregunta: '¿Cuánto tarda mi vela?',
+        respuesta: `Se hace a tu medida: está lista en ${ENTREGA_VELAS} desde que confirmamos tu pedido.`,
+      },
+      {
+        pregunta: '¿Puedo pedir varias para un evento?',
+        respuesta:
+          'Sí. En el formulario puedes pedir hasta 20 velas iguales; si necesitas más o de varios estilos, escríbenos por WhatsApp y te cotizamos.',
+      },
+      {
+        pregunta: '¿Cómo uso la vela?',
+        respuesta:
+          'La primera vez déjala encendida hasta que se derrita toda la superficie (1 a 2 horas); así se consume pareja. Corta el pabilo a medio centímetro antes de cada uso y nunca la dejes encendida sin vigilar.',
+      },
+      {
+        pregunta: '¿Dónde la recojo?',
         respuesta: 'De momento puedes recoger en punto de entrega dentro de Mérida.',
       },
     ],

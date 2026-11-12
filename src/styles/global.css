@@ -219,6 +219,14 @@ ol[role='list'] {
   --boton-fondo: var(--color-pino-oscuro);
 }
 
+.boton--cera {
+  --boton-fondo: var(--color-cera);
+}
+
+.boton--cera:hover {
+  --boton-fondo: var(--color-cera-oscuro);
+}
+
 .boton--contorno {
   background: transparent;
   color: var(--color-tinta);
@@ -231,10 +239,10 @@ ol[role='list'] {
   border-color: var(--color-tinta);
 }
 
-/* Sobre fondos oscuros (portada de los kits). */
+/* Sobre fondos oscuros (portadas de los kits y las velas). El texto toma `--boton-acento`. */
 .boton--claro {
   --boton-fondo: var(--color-blanco);
-  --boton-texto: var(--color-pino);
+  --boton-texto: var(--boton-acento, var(--color-pino));
 }
 
 .boton--claro:hover {
@@ -249,7 +257,7 @@ ol[role='list'] {
 
 .boton--contorno-claro:hover {
   background: var(--color-blanco);
-  color: var(--color-pino);
+  color: var(--boton-acento, var(--color-pino));
   border-color: var(--color-blanco);
 }
 

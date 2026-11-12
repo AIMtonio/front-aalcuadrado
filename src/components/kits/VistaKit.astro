@@ -5,7 +5,9 @@
  * y `--vela`; `src/scripts/kit.ts` los cambia y marca con `data-activa` la forma y
  * el topping elegidos.
  */
-import { FIGURAS_JABON, FIGURAS_TOPPING, type FiguraJabon, type FiguraTopping } from '@/domain/kits';
+import { FIGURAS_JABON, type FiguraJabon, type FiguraTopping } from '@/domain/kits';
+import Toppings from '@/components/velas/Toppings.astro';
+import { estrella } from '@/components/velas/dibujo';
 
 interface Props {
   jabon: string;
@@ -19,18 +21,8 @@ interface Props {
 
 const { jabon, vela, forma, topping, class: clase, etiqueta } = Astro.props;
 
-/** Puntos de una estrella de `n` picos centrada en (cx, cy). */
-function estrella(cx: number, cy: number, exterior: number, interior: number, n = 5): string {
-  return Array.from({ length: n * 2 }, (_, i) => {
-    const radio = i % 2 === 0 ? exterior : interior;
-    const angulo = (Math.PI / n) * i - Math.PI / 2;
-    return `${(cx + radio * Math.cos(angulo)).toFixed(1)},${(cy + radio * Math.sin(angulo)).toFixed(1)}`;
-  }).join(' ');
-}
-
 const brazosCopo = [0, 60, 120, 180, 240, 300];
 const formas = new Set<string>(FIGURAS_JABON);
-const toppings = new Set<string>(FIGURAS_TOPPING);
 const activa = (grupo: Set<string>, valor: string, actual: string) => (grupo.has(valor) && valor === actual ? '' : undefined);
 
 // Los dos jabones del kit: el de atrás, más chico; el de enfrente, a tamaño normal.
@@ -147,101 +139,7 @@ const jabones = [
     <rect x="244" y="157" width="8" height="8" rx="1.6" fill="#3B2A9B" />
     <rect x="254" y="155" width="5" height="5" rx="1" fill="#E4007C" />
 
-    <g>
-      <g data-topping="naranja" data-activa={activa(toppings, 'naranja', topping)}>
-        <circle cx="228" cy="117" r="10" class="vista-kit__naranja" />
-        <path d="M228 109v16M220 117h16M222.5 111.5l11 11M233.5 111.5l-11 11" class="vista-kit__gajos" />
-        <circle cx="273" cy="116" r="8.5" class="vista-kit__naranja" />
-        <path d="M273 109.5v13M266.5 116h13" class="vista-kit__gajos" />
-      </g>
-      <g data-topping="canela" data-activa={activa(toppings, 'canela', topping)}>
-        <rect x="226" y="111" width="46" height="7" rx="3.5" transform="rotate(-10 249 114)" class="vista-kit__canela" />
-        <rect x="230" y="114" width="42" height="7" rx="3.5" transform="rotate(8 251 117)" class="vista-kit__canela" />
-      </g>
-      <g data-topping="anis" data-activa={activa(toppings, 'anis', topping)}>
-        <polygon points={estrella(231, 117, 10, 3.5, 8)} class="vista-kit__anis" />
-        <polygon points={estrella(270, 115, 8.5, 3, 8)} class="vista-kit__anis" />
-      </g>
-      <g data-topping="flores" data-activa={activa(toppings, 'flores', topping)}>
-        {
-          [
-            [228, 116, '#E4007C'],
-            [252, 121, '#9B7BD4'],
-            [272, 114, '#F2B705'],
-          ].map(([x, y, color]) => (
-            <g fill={color as string}>
-              {[0, 72, 144, 216, 288].map((g) => (
-                <circle cx={x} cy={(y as number) - 4.5} r="3.6" transform={`rotate(${g} ${x} ${y})`} />
-              ))}
-              <circle cx={x} cy={y} r="2.4" fill="#FFF6D8" />
-            </g>
-          ))
-        }
-      </g>
-      <g data-topping="rosas" data-activa={activa(toppings, 'rosas', topping)}>
-        {
-          [
-            [229, 116],
-            [252, 121],
-            [272, 114],
-          ].map(([x, y]) => (
-            <g transform={`translate(${x} ${y})`}>
-              <ellipse cx="6" cy="3" rx="4" ry="2" fill="#4E7A3A" transform="rotate(25 6 3)" />
-              <circle r="6" class="vista-kit__rosa" />
-              <path d="M-2.5 0.5a2.5 2.5 0 1 1 2.5 2.5M-4 -1a4.5 4.5 0 0 1 7-2" class="vista-kit__rosa-petalos" />
-            </g>
-          ))
-        }
-      </g>
-      <g data-topping="manzanilla" data-activa={activa(toppings, 'manzanilla', topping)}>
-        {
-          [
-            [229, 116],
-            [251, 121],
-            [272, 114],
-          ].map(([x, y]) => (
-            <g transform={`translate(${x} ${y})`}>
-              {[0, 45, 90, 135, 180, 225, 270, 315].map((g) => (
-                <ellipse cx="0" cy="-4.5" rx="1.8" ry="3.4" fill="#FFFDF5" stroke="rgb(23 20 43 / 0.15)" stroke-width="0.5" transform={`rotate(${g})`} />
-              ))}
-              <circle r="2.6" fill="#F2B705" />
-            </g>
-          ))
-        }
-      </g>
-      <g data-topping="cafe" data-activa={activa(toppings, 'cafe', topping)}>
-        {
-          [
-            [226, 116, -20],
-            [238, 120, 30],
-            [250, 114, 70],
-            [262, 120, -40],
-            [274, 115, 15],
-            [246, 123, -70],
-          ].map(([x, y, g]) => (
-            <g transform={`translate(${x} ${y}) rotate(${g})`}>
-              <ellipse rx="4.6" ry="3.2" class="vista-kit__cafe" />
-              <path d="M-3.4 0q1.7-1.4 3.4 0t3.4 0" class="vista-kit__cafe-linea" />
-            </g>
-          ))
-        }
-      </g>
-      <g data-topping="piedras" data-activa={activa(toppings, 'piedras', topping)}>
-        {
-          [
-            [227, 117, 7, 4.5, '#8E949A'],
-            [241, 121, 6, 4, '#C9C4BC'],
-            [256, 115, 7.5, 4.8, '#6F757B'],
-            [270, 120, 6.5, 4.2, '#B4ADA3'],
-          ].map(([x, y, rx, ry, color]) => (
-            <g>
-              <ellipse cx={x} cy={y} rx={rx} ry={ry} fill={color as string} />
-              <ellipse cx={(x as number) - 2} cy={(y as number) - 1.5} rx={(rx as number) / 2.6} ry="1.1" fill="rgb(255 255 255 / 0.45)" />
-            </g>
-          ))
-        }
-      </g>
-    </g>
+    <Toppings topping={topping} />
 
     <path d="M250 120v-15" class="vista-kit__pabilo" />
     <g class="vista-kit__flama">
@@ -277,12 +175,11 @@ const jabones = [
     overflow: visible;
   }
 
-  .vista-kit [data-forma],
-  .vista-kit [data-topping] {
+  .vista-kit [data-forma] {
     display: none;
   }
 
-  .vista-kit [data-activa] {
+  .vista-kit [data-forma][data-activa] {
     display: inline;
   }
 
@@ -379,48 +276,6 @@ const jabones = [
   .vista-kit__etiqueta {
     fill: var(--color-papel);
     stroke: rgb(23 20 43 / 0.15);
-  }
-
-  .vista-kit__naranja {
-    fill: #f08a24;
-    stroke: #fbd38d;
-    stroke-width: 2;
-  }
-
-  .vista-kit__gajos {
-    stroke: #fbd38d;
-    stroke-width: 1.2;
-  }
-
-  .vista-kit__canela {
-    fill: #8a4b2a;
-    stroke: #5e3018;
-    stroke-width: 1;
-  }
-
-  .vista-kit__anis {
-    fill: #6b3a22;
-  }
-
-  .vista-kit__rosa {
-    fill: #a3203a;
-  }
-
-  .vista-kit__rosa-petalos {
-    fill: none;
-    stroke: #e3758a;
-    stroke-width: 1.1;
-    stroke-linecap: round;
-  }
-
-  .vista-kit__cafe {
-    fill: #4a2c1d;
-  }
-
-  .vista-kit__cafe-linea {
-    fill: none;
-    stroke: #8a5a3b;
-    stroke-width: 0.9;
   }
 
   .vista-kit__pabilo {

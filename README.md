@@ -1,272 +1,425 @@
-# aalcuadrado
+# aalcuadrado · front
 
-Sitio de **aalcuadrado** (se lee "A al cuadrado"): manualidades hechas a mano en Mérida. Hoy vende dos líneas de producto:
+Sitio público de **aalcuadrado** (se lee "A al cuadrado"), un taller de manualidades hechas a mano en Mérida. Este repositorio es la **capa de presentación** de un sistema de dos piezas: un sitio estático que se publica en un CDN y una API propia ([back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado)) que administra el catálogo y recibe pedidos.
 
-- **Aretes** con motivos mexicanos, diseñados e impresos en 3D. Se piden por WhatsApp.
-- **Kits navideños** de jabón y vela a la medida. Quien visita arma su kit en un formulario y el pedido llega al panel de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) (o por WhatsApp si no hay API).
-
-Está hecho con [Astro](https://astro.build) y es un sitio estático. Los productos y sus fotos vienen de la API al compilar (o de este repositorio, editados desde **[Pages CMS](https://pagescms.org)**).
-
-| Página | Qué tiene |
+| | |
 | --- | --- |
-| `/` | Portada: qué es aalcuadrado y la elección entre aretes y kits navideños. |
-| `/aretes/` | Catálogo, galería, personalizados, diseñador, mayoreo y preguntas de aretes. |
-| `/kits-navidenos/` | Cómo funciona, el formulario "Arma tu kit" y preguntas de los kits. |
+| **Producción** | <https://aalcuadrado.antonioalonso.com.mx> |
+| **Estilo** | Sitio estático generado al compilar (SSG), con islas de TypeScript en el navegador |
+| **Stack** | Astro 7 · TypeScript estricto · Zod · Sharp · CSS propio (sin frameworks de UI) |
+| **Hospedaje** | Vercel (CDN) · la API vive en un servidor propio detrás de Cloudflare Tunnel |
+| **Líneas de producto** | Aretes impresos en 3D (catálogo) · Kits navideños de vela + jabones y velas personalizadas (pedidos a la medida) |
 
-Arriba de todas las páginas, bajo el encabezado, están las pestañas **Aretes · Kits navideños** para cambiar de una a otra. Los enlaces viejos (`/#producto/…`, `/?coleccion=…`) llevan solos a `/aretes/`.
+> ¿Buscas cómo agregar un producto, cambiar un precio o publicar? Eso está en el **[Manual de operación](docs/operacion.md)**. Este README describe el sistema.
 
 ---
 
-## 1. Correr el sitio en tu computadora
+## Contenido
 
-Necesitas **Node.js 24** (o 22.22 en adelante). Descárgalo de [nodejs.org](https://nodejs.org) si no lo tienes.
-
-```bash
-npm install        # solo la primera vez (o cuando cambien las dependencias)
-npm run dev        # abre http://localhost:4321
-```
-
-Mientras `npm run dev` esté corriendo, cada cambio que guardes (una foto nueva, un precio) se ve al recargar la página. Para detenerlo, presiona `Ctrl + C` en la terminal.
-
-Otros comandos útiles:
-
-| Comando | Para qué sirve |
-| --- | --- |
-| `npm run productos:validar` | Revisa los productos y sus fotos y te dice qué falta. |
-| `npm run build` | Genera el sitio final en la carpeta `dist/`. |
-| `npm run preview` | Muestra el sitio ya compilado, igual que como quedará publicado. |
-| `npm run check` | Revisa que el código no tenga errores. |
-| `npm run ejemplos:generar` | Vuelve a crear las fotos de ejemplo (no sobrescribe las que ya existen). |
-| `npm run og:generar` | Vuelve a crear la imagen para compartir en redes (`public/og.png`). |
+1. [Principios](#1-principios)
+2. [Contexto del sistema](#2-contexto-del-sistema)
+3. [Contenedores y despliegue](#3-contenedores-y-despliegue)
+4. [Arquitectura del front](#4-arquitectura-del-front)
+5. [Flujo de publicación](#5-flujo-de-publicación)
+6. [Flujo de un pedido a la medida](#6-flujo-de-un-pedido-a-la-medida)
+7. [Mapa del sitio](#7-mapa-del-sitio)
+8. [Atributos de calidad](#8-atributos-de-calidad)
+9. [Decisiones de arquitectura](#9-decisiones-de-arquitectura)
+10. [Riesgos y deuda técnica](#10-riesgos-y-deuda-técnica)
+11. [Desarrollo](#11-desarrollo)
+12. [Documentación](#12-documentación)
 
 ---
 
-## 2. Productos y fotos desde Pages CMS
+## 1. Principios
 
-Pages CMS es un panel gratuito que edita los archivos de este repositorio. No necesita servidor: cada vez que guardas, hace un commit en GitHub y Vercel vuelve a publicar el sitio solo en uno o dos minutos. Funciona desde el celular.
+1. **Estático primero.** Todo lo que se puede decidir al compilar se decide al compilar: catálogo, fotos optimizadas, opciones de los kits y las velas. El navegador solo llama a la API para lo que de verdad ocurre en vivo (mandar un pedido, generar un diseño).
+2. **El sitio no se cae si la API se cae.** La API alimenta el *build*, no las visitas. Si está apagada, el sitio publicado sigue funcionando y los pedidos se desvían a WhatsApp.
+3. **Un contrato, dos lados.** Los esquemas Zod de `src/domain/` repiten las reglas de los DTO del back. El front valida antes de mandar y el back valida al recibir.
+4. **Puertos y adaptadores ligeros.** Páginas y componentes hablan con interfaces (`CatalogoRepository`, `CanalPedidos`), nunca con archivos, `fetch` o WhatsApp directamente.
+5. **Configuración de negocio en un solo lugar.** Lo que cambia seguido (precios, textos, tiempos de entrega, opciones fijas) vive en `src/config/sitio.ts`. Lo que cambia muy seguido (productos, colores, aromas, fotos) vive en el panel de la API.
 
-### Configurarlo (una sola vez)
+---
 
-1. Asegúrate de que el archivo `.pages.yml` ya esté en la rama `main` en GitHub.
-2. Entra a [app.pagescms.org](https://app.pagescms.org) y elige **Sign in with GitHub**.
-3. Cuando lo pida, instala la app de Pages CMS en tu cuenta y dale acceso **solo** al repositorio `front-aalcuadrado`.
-4. Abre el repositorio y elige la rama `main`. Verás dos secciones: **Productos** y **Galería "Así se ven"**.
+## 2. Contexto del sistema
 
-### Agregar un producto
+Quién usa el sistema y con qué sistemas externos habla.
 
-1. En **Productos**, toca **Add an entry**.
-2. Escribe el **nombre**. De ahí sale el nombre del archivo y el enlace del producto (por ejemplo, "Calavera catrina" → `calavera-catrina`), así que piénsalo bien: no se cambia después.
-3. Elige la **colección** y escribe una **descripción** corta.
-4. En **Colores**, agrega cada color con su nombre (como lo verá el cliente), su color en hexadecimal (`#E4007C`) y sus fotos. Las fotos se suben ahí mismo.
-5. Si tienes fotos que no son de un color (en el puesto, en la caja…), súbelas en **Otras fotos**. La **foto principal** es opcional; si no la pones, se usa la primera del primer color.
-6. Revisa **Disponible** y **Destacado**, y guarda con **Save**.
+```mermaid
+flowchart LR
+  visitante(["👤 Visitante<br/>compra aretes o arma un kit"])
+  duenio(["👤 Dueño del taller<br/>administra catálogo y cotiza"])
 
-Recomendaciones para las fotos:
+  subgraph aalcuadrado["Sistema aalcuadrado"]
+    front["🌐 Sitio público<br/><i>este repositorio</i><br/>Astro estático"]
+    api["⚙️ API y panel<br/><i>back-aalcuadrado</i><br/>NestJS + MariaDB"]
+  end
 
-- Formatos: `.jpg`, `.jpeg`, `.png`, `.webp` o `.avif`. Las fotos HEIC del iPhone no sirven: compártelas como JPG o cambia la cámara a "Más compatible".
-- Las verticales (4:5, por ejemplo 1200 × 1500 px) son las que mejor se ven.
-- Súbelas de menos de 1 MB cada una. El sitio las optimiza solo, pero así el repositorio no crece de más.
-- Usa nombres distintos para cada foto (por ejemplo `catrina-morado-1.jpg`). Si subes otra foto con el mismo nombre, puede sustituir a la anterior.
+  whatsapp["💬 WhatsApp<br/>cierre de ventas"]
+  openai["🎨 OpenAI Images<br/>diseñador de aretes"]
+  gtm["📊 Google Tag Manager<br/>analítica"]
+  github["🐙 GitHub + Pages CMS<br/>código y contenido de respaldo"]
 
-### Galería "Así se ven"
+  visitante -- "navega y pide" --> front
+  visitante -- "chatea" --> whatsapp
+  front -- "pedidos y diseños<br/>HTTPS, en vivo" --> api
+  front -- "catálogo y fotos<br/>al compilar" --> api
+  front -. "enlaces wa.me" .-> whatsapp
+  front -. "eventos" .-> gtm
+  api -- "genera imágenes" --> openai
+  duenio -- "panel /panel/" --> api
+  duenio -- "edita contenido" --> github
+  github -- "commit dispara build" --> front
 
-En **Galería "Así se ven"** agrega las fotos de ambiente y escribe en **Descripción** qué se ve en cada una (sirve para quien no puede ver la imagen). Salen en el orden de la lista.
-
-### Si prefieres editar a mano
-
-Pages CMS solo escribe archivos normales, así que también puedes editarlos tú:
-
-- Las fotos van en `src/content/fotos/productos/` y `src/content/fotos/galeria/`.
-- Cada producto es un archivo `src/content/productos/<nombre-del-producto>.json`:
-
-```json
-{
-  "nombre": "Calavera catrina",
-  "coleccion": "dia-de-muertos",
-  "descripcion": "La catrina de Posada, en un arete que casi no pesa.",
-  "etiqueta": "Nuevo",
-  "disponible": true,
-  "destacado": false,
-  "orden": 4,
-  "colores": [
-    {
-      "nombre": "Morado",
-      "hex": "#3B2A9B",
-      "fotos": ["/src/content/fotos/productos/catrina-morado-1.jpg"]
-    }
-  ],
-  "otrasFotos": ["/src/content/fotos/productos/catrina-en-caja.jpg"]
-}
+  classDef persona fill:#3b2a9b,stroke:#2c1f78,color:#fff
+  classDef propio fill:#fffcf7,stroke:#3b2a9b,stroke-width:2px,color:#17142b
+  classDef externo fill:#f7f1e8,stroke:#a39e8f,color:#17142b,stroke-dasharray:4 3
+  class visitante,duenio persona
+  class front,api propio
+  class whatsapp,openai,gtm,github externo
+  style aalcuadrado fill:#f4f3fa,stroke:#3b2a9b,color:#17142b
 ```
 
-| Campo | ¿Obligatorio? | Qué poner |
+| Actor / sistema | Rol |
+| --- | --- |
+| Visitante | Ve el catálogo de aretes, arma kits navideños o velas y pide por WhatsApp o por formulario. |
+| Dueño del taller | Administra productos, categorías, colores, aromas, tamaños de velas y fotos en el panel; cotiza los pedidos de kits y velas. |
+| WhatsApp | Canal de venta principal (aretes) y respaldo de los pedidos de kits y velas. |
+| OpenAI Images | Lo usa solo la API, para el diseñador de aretes. La llave nunca llega al navegador. |
+| GitHub + Pages CMS | Código fuente y un catálogo de respaldo en JSON, editable desde el navegador. |
+
+---
+
+## 3. Contenedores y despliegue
+
+Dónde corre cada pieza y cómo se comunican.
+
+```mermaid
+flowchart TB
+  subgraph cliente["Navegador del visitante"]
+    html["HTML + CSS estáticos"]
+    islas["Islas TypeScript<br/>visor · filtros · arma tu kit · diseñador"]
+  end
+
+  subgraph vercel["Vercel"]
+    cdn[("CDN<br/>dist/: 3 páginas,<br/>imágenes AVIF/WebP")]
+    build["Build<br/>prebuild → astro build"]
+  end
+
+  subgraph casa["Servidor propio"]
+    tunel["Cloudflare Tunnel<br/>HTTPS público"]
+    nest["API NestJS<br/>/api/*  ·  /panel/  ·  /uploads/"]
+    db[("MariaDB<br/>productos, categorías,<br/>opciones de kit, pedidos")]
+    disco[("Disco<br/>UPLOADS_DIR/<br/>productos · galeria · kits · velas-*")]
+  end
+
+  repo[("GitHub<br/>front-aalcuadrado")]
+
+  html --> islas
+  cdn -- "GET páginas e imágenes" --> html
+  islas -- "POST /api/pedidos<br/>GET·POST /api/disenos" --> tunel
+  tunel --> nest
+  nest --> db
+  nest --> disco
+  repo -- "push a main" --> build
+  nest -- "Deploy Hook<br/>botón Publicar sitio" --> build
+  build -- "login + GET catálogo<br/>con token" --> tunel
+  build -- "publica" --> cdn
+
+  classDef nube fill:#fffcf7,stroke:#3b2a9b,color:#17142b
+  classDef datos fill:#e9e6f7,stroke:#3b2a9b,color:#17142b
+  class html,islas,build,tunel,nest nube
+  class cdn,db,disco,repo datos
+  style cliente fill:#f7f1e8,stroke:#a39e8f,color:#17142b
+  style vercel fill:#f4f3fa,stroke:#3b2a9b,color:#17142b
+  style casa fill:#e3efe7,stroke:#1f5e3b,color:#17142b
+```
+
+| Contenedor | Tecnología | Responsabilidad | Escala / costo |
+| --- | --- | --- | --- |
+| Sitio estático | Astro, HTML, CSS, TS | Presentar el catálogo, los kits y las velas; validar y mandar pedidos | CDN global, plan gratuito |
+| Build | Node 22+, `scripts/*.mjs`, Sharp | Sincronizar la API, validar contenido y optimizar imágenes | 1 build por cambio, segundos |
+| API | NestJS, TypeORM, JWT | Catálogo, fotos, opciones de kit, pedidos, diseñador | Una instancia, límites por IP |
+| Base de datos | MariaDB / MySQL | Estado del negocio | Una instancia |
+| Archivos | Disco del servidor | Fotos originales subidas desde el panel | Se copian al front en cada build |
+
+---
+
+## 4. Arquitectura del front
+
+Capas dentro de este repositorio. Las flechas indican dependencia: una capa solo conoce a las de abajo.
+
+```mermaid
+flowchart TB
+  subgraph presentacion["Presentación · src/pages · src/components · src/scripts"]
+    paginas["Páginas<br/>/ · /aretes/ · /kits-navidenos/ · /velas/"]
+    componentes["Componentes .astro<br/>Hero, Catálogo, ArmaTuKit, Visor…"]
+    scripts["Islas del navegador<br/>tarjetas.ts · visor.ts · kit.ts · disenador.ts"]
+  end
+
+  subgraph servicios["Servicios · src/services"]
+    canal["CanalPedidos<br/>enlaces de WhatsApp"]
+    clientes["ClienteEncargos · ClienteDisenos<br/>fetch a la API pública"]
+  end
+
+  subgraph datos["Datos · src/data"]
+    repo["CatalogoRepository<br/>interfaz"]
+    local["CatalogoArchivosLocales<br/>catalogo-api.json + JSON de respaldo"]
+  end
+
+  subgraph dominio["Dominio · src/domain"]
+    zod["Esquemas Zod y reglas puras<br/>catálogo · kits · velas · diseños"]
+  end
+
+  config["Configuración · src/config<br/>sitio.ts · rutas.ts"]
+
+  paginas --> componentes
+  paginas --> repo
+  componentes --> canal
+  scripts --> canal
+  scripts --> clientes
+  repo -. "implementa" .- local
+  local --> zod
+  clientes --> zod
+  canal --> config
+  componentes --> config
+
+  classDef capa fill:#fffcf7,stroke:#3b2a9b,color:#17142b
+  class paginas,componentes,scripts,canal,clientes,repo,local,zod,config capa
+  style presentacion fill:#f4f3fa,stroke:#3b2a9b,color:#17142b
+  style servicios fill:#f7f1e8,stroke:#a39e8f,color:#17142b
+  style datos fill:#f7f1e8,stroke:#a39e8f,color:#17142b
+  style dominio fill:#e3efe7,stroke:#1f5e3b,color:#17142b
+```
+
+| Capa | Regla |
+| --- | --- |
+| Dominio | Solo depende de `zod`. Funciona igual en el navegador, en el build y en los scripts de Node. |
+| Datos | Es el único lugar que lee archivos (`import.meta.glob`). Cambiar de origen de datos es cambiar una línea en `src/data/index.ts`. |
+| Servicios | Sin APIs de Astro: se usan en el servidor y en el navegador. La UI pide "un enlace para pedir", no "un enlace de WhatsApp". |
+| Presentación | Componentes `.astro` sin frameworks de UI. El JavaScript del navegador se carga solo donde hay interacción. |
+
+---
+
+## 5. Flujo de publicación
+
+El catálogo se "congela" en cada build. Cambiar algo en el panel no se ve hasta volver a publicar.
+
+```mermaid
+flowchart LR
+  disparo{{"Disparo"}}
+  push["push / merge a main"]
+  cms["guardar en Pages CMS"]
+  hook["botón Publicar sitio<br/>en el panel"]
+
+  sync["api:sincronizar<br/>login JWT · GET productos,<br/>categorías, imágenes,<br/>colores y aromas de kit"]
+  manifiesto[("catalogo-api.json<br/>+ fotos en src/content/fotos/api/")]
+  validar["productos:validar<br/>esquemas Zod"]
+  astro["astro build<br/>HTML · AVIF/WebP · srcset<br/>JSON-LD · sitemap"]
+  cdn[("CDN de Vercel")]
+  falla["❌ El build falla<br/>sigue en línea<br/>la versión anterior"]
+
+  push --> disparo
+  cms --> disparo
+  hook --> disparo
+  disparo --> sync --> manifiesto --> validar --> astro --> cdn
+  sync -. "API no responde" .-> falla
+  validar -. "contenido inválido" .-> falla
+
+  classDef paso fill:#fffcf7,stroke:#3b2a9b,color:#17142b
+  classDef datos fill:#e9e6f7,stroke:#3b2a9b,color:#17142b
+  classDef error fill:#fbe9ea,stroke:#b3202a,color:#7d141b
+  class push,cms,hook,sync,validar,astro paso
+  class manifiesto,cdn datos
+  class falla error
+```
+
+- **Tolerante a versiones de la API.** Si una ruta nueva todavía no existe (responde `404`, por ejemplo `/api/categorias`, `/api/kits/colores` o `/api/velas/presentaciones`), la sincronización sigue sin esos datos y el sitio usa sus valores de respaldo.
+- **Atómico.** Vercel solo cambia de versión si el build completo termina bien; nunca se publica un sitio a medias.
+- **Sin API** (`API_URL` vacío), el sitio se arma con los JSON del repositorio y los pedidos de kits y velas van por WhatsApp.
+
+---
+
+## 6. Flujo de un pedido a la medida
+
+El único flujo que escribe datos desde el sitio público. El diagrama muestra un kit; una vela personalizada sigue exactamente el mismo camino con `vela.ts`, `revisarPedidoVela`, `POST /api/velas/pedidos` y la tabla `pedidos_velas`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor V as Visitante
+  participant F as Arma tu kit<br/>(kit.ts)
+  participant D as Dominio<br/>(revisarPedido)
+  participant A as API<br/>POST /api/pedidos
+  participant B as MariaDB<br/>pedidos_kits
+  participant W as WhatsApp
+  actor P as Dueño (panel)
+
+  V->>F: elige jabones, vela y topping
+  F-->>V: actualiza la vista previa y el resumen
+  V->>F: Mandar mi pedido
+  F->>D: valida campos, largos y contacto
+  alt datos inválidos
+    D-->>F: errores por campo
+    F-->>V: marca los campos y enfoca el primero
+  else datos válidos
+    F->>A: JSON del pedido (sin token)
+    alt 201 Created
+      A->>B: INSERT
+      A-->>F: { id }
+      F-->>V: ¡Recibimos tu pedido! (folio) + botón de WhatsApp
+      P->>A: GET /api/pedidos (con token)
+      P->>V: cotiza por correo o teléfono
+    else 400 · 429 · sin conexión
+      A-->>F: error
+      F-->>V: mensaje en español + "Mandarlo por WhatsApp"
+      V->>W: mismo pedido, ya escrito
+    end
+  end
+```
+
+Estados del pedido, del lado del visitante y del taller:
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> Armando: abre /kits-navidenos/
+  Armando --> Validando: Mandar mi pedido
+  Validando --> Armando: faltan datos
+  Validando --> Enviando: datos válidos
+  Enviando --> Recibido: 201 con folio
+  Enviando --> PorWhatsApp: falla la API
+  Validando --> PorWhatsApp: build sin API_URL
+  Recibido --> Cotizado: el dueño escribe con el precio
+  PorWhatsApp --> Cotizado: el dueño contesta el chat
+  Cotizado --> EnTaller: el cliente confirma
+  EnTaller --> Entregado: una semana después
+  Entregado --> [*]
+```
+
+---
+
+## 7. Mapa del sitio
+
+```mermaid
+flowchart LR
+  inicio["/ · Portada<br/>¿Qué quieres ver?"]
+  aretes["/aretes/<br/>Catálogo · Galería · Proceso ·<br/>Personaliza · Diseñador · Mayoreo · FAQ"]
+  kits["/kits-navidenos/<br/>Así quedan · Cómo funciona ·<br/>Arma tu kit · FAQ"]
+  velas["/velas/<br/>Así se ven · Cómo funciona ·<br/>Arma tu vela · FAQ"]
+  visor(["Visor de fotos<br/>#producto/slug/n · #galeria/n · #kits/n · #velas-tipo/n"])
+  wa(["WhatsApp"])
+
+  inicio -- "tarjeta / pestaña" --> aretes
+  inicio -- "tarjeta / pestaña" --> kits
+  inicio -- "tarjeta / pestaña" --> velas
+  aretes <-- "pestañas del encabezado" --> kits
+  kits <-- "pestañas" --> velas
+  aretes --> visor
+  kits --> visor
+  velas --> visor
+  aretes --> wa
+  kits --> wa
+  velas --> wa
+  inicio -. "enlaces viejos /#producto/… redirigen" .-> aretes
+
+  classDef pagina fill:#fffcf7,stroke:#3b2a9b,color:#17142b
+  classDef kit fill:#e3efe7,stroke:#1f5e3b,color:#17142b
+  class inicio,aretes pagina
+  classDef vela fill:#f6e6d8,stroke:#9a4a1c,color:#17142b
+  class kits kit
+  class velas vela
+```
+
+---
+
+## 8. Atributos de calidad
+
+| Atributo | Cómo se logra |
+| --- | --- |
+| **Rendimiento** | HTML prerenderizado; imágenes AVIF/WebP en varios anchos con `srcset`; fuentes servidas desde el mismo sitio; JavaScript solo en las islas interactivas. |
+| **Disponibilidad** | Las visitas dependen solo del CDN. Si la API se cae, se pierde el guardado de pedidos, no el sitio, y queda WhatsApp como respaldo. |
+| **Seguridad** | Las credenciales de la API solo existen en el build. El navegador usa rutas públicas con límite por IP (5 pedidos por minuto) y CORS restringido al dominio. La llave de OpenAI vive solo en la API. |
+| **Integridad de datos** | Esquemas Zod al compilar y antes de mandar; DTO con `class-validator` en la API. Un contenido inválido detiene el build. |
+| **Accesibilidad** | HTML semántico, foco visible, `aria-live` en filtros y formularios, textos alternativos en todas las fotos y respeto de `prefers-reduced-motion`. |
+| **SEO** | Sitemap, URL canónicas, Open Graph y JSON-LD (`Organization`, `Product`) por página. |
+| **Mantenibilidad** | TypeScript estricto, capas con dependencias en un solo sentido, configuración centralizada y `npm run check` en cada cambio. |
+| **Costo** | Sin servidores pagados para el sitio; la API corre en hardware propio. |
+
+---
+
+## 9. Decisiones de arquitectura
+
+Cada decisión importante tiene su registro (ADR) con contexto, alternativas y consecuencias.
+
+| # | Decisión | Estado |
 | --- | --- | --- |
-| `nombre` | Sí | Nombre del producto. |
-| `coleccion` | Sí | Una de estas: `dia-de-muertos`, `mexicanos`, `patrios`, `navidad`, `otros`. |
-| `colores` | No | Cada color con `nombre`, `hex` y la lista de sus `fotos`. |
-| `portada` | No | Foto principal. Si no hay, se usa la primera del primer color. |
-| `otrasFotos` | No | Fotos que no son de un color. |
-| `descripcion` | No | Una o dos líneas (máximo 240 caracteres). |
-| `etiqueta` | No | `"Nuevo"`, `"Temporada"` o `"Más vendido"`. |
-| `disponible` | No | `true` (por defecto) o `false` para marcarlo como agotado. |
-| `destacado` | No | `true` para que su foto salga en la portada del sitio. |
-| `orden` | No | Número para ordenar el catálogo (1 va primero). |
-| `precio` | No | Por ahora no se usa: todos los diseños listos cuestan lo que diga `src/config/sitio.ts`. |
+| [0001](docs/adr/0001-sitio-estatico-con-astro.md) | Sitio estático con Astro | Aceptada |
+| [0002](docs/adr/0002-catalogo-desde-la-api-al-compilar.md) | El catálogo se lee de la API al compilar, no en cada visita | Aceptada |
+| [0003](docs/adr/0003-ventas-por-whatsapp-detras-de-una-interfaz.md) | Las ventas se cierran por WhatsApp, detrás de una interfaz | Aceptada |
+| [0004](docs/adr/0004-kits-como-pedido-a-la-medida.md) | Los kits son un pedido a la medida, no productos del catálogo | Aceptada |
+| [0005](docs/adr/0005-una-pagina-por-linea-de-producto.md) | Una página por línea de producto | Aceptada |
+| [0006](docs/adr/0006-velas-personalizadas-como-pedido-a-la-medida.md) | Las velas personalizadas siguen el modelo de pedido a la medida | Aceptada |
 
-Después revisa que todo esté bien:
+---
+
+## 10. Riesgos y deuda técnica
+
+| Riesgo | Impacto | Mitigación actual / siguiente paso |
+| --- | --- | --- |
+| La API es una sola instancia en hardware propio | Si se apaga, fallan los builds y el guardado de pedidos | El sitio sigue en línea y los pedidos se desvían a WhatsApp. Siguiente paso: monitoreo del túnel y respaldo de MariaDB. |
+| Los cambios del panel no se ven hasta volver a publicar | Contenido desactualizado si nadie presiona "Publicar sitio" | Deploy Hook desde el panel. Siguiente paso: publicar automáticamente al guardar. |
+| `API_URL` queda escrita en la página | Cualquiera puede llamar a las rutas públicas | Solo se exponen rutas sin datos sensibles, con límite por IP y validación en la API. |
+| El filtro de palabras del diseñador corre en el navegador | Se puede saltar llamando a la API directo | La API limita a 10 diseños por minuto por IP y rechaza (422) lo que bloquea la moderación de OpenAI; el filtro del front solo ahorra imágenes. |
+| Los gramos de cada tamaño de vela están pendientes | El cliente elige "Mediana" sin saber cuánto pesa | El sitio los muestra en cuanto se capturan en el panel ("Mediana · 180 g"). Siguiente paso: capturarlos y volver a publicar. |
+| Los dos jabones de un kit comparten forma, color y aroma | El cliente no puede pedir dos jabones distintos | Requiere ampliar `pedidos_kits` en el back y el formulario. |
+| Precios de aretes fijos en `sitio.ts` | El precio de cada producto en la API se ignora | Mover el precio al panel cuando haya precios distintos por modelo. |
+
+---
+
+## 11. Desarrollo
+
+Requisitos: **Node.js 22.22 o más nuevo** (ver `.nvmrc`).
 
 ```bash
-npm run productos:validar
+npm install
+npm run dev          # http://localhost:4321
+npm run check        # astro check + tsc
+npm run build        # sincroniza la API (si hay API_URL), valida y compila en dist/
 ```
 
-Te dirá si falta algo: productos sin fotos, fotos que no existen, errores en el JSON o fotos que no usa nadie. Esta revisión también corre antes de cada publicación en Vercel: si algo está mal, el sitio no se publica y lo verás en **Deployments** del proyecto.
+Variables de entorno (en `.env` para local y en Vercel para producción):
 
-### Quitar los productos de ejemplo
-
-Los tres productos que vienen (`papel-picado-calaverita`, `corazon-talavera`, `nochebuena`) y las fotos de la galería son **de ejemplo** (dicen "Foto de ejemplo"). Bórralos desde Pages CMS o cambia sus fotos por fotos reales. Las fotos que ya no uses puedes borrarlas desde **Media** en Pages CMS.
-
----
-
-## 3. Cambios frecuentes
-
-### Marcar un producto como agotado
-
-En Pages CMS, abre el producto y apaga **Disponible**. Se mostrará con la etiqueta "Agotado" y el botón "Avísame por WhatsApp".
-
-### Cambiar los precios
-
-Por ahora los precios son fijos y están en `src/config/sitio.ts`:
-
-```ts
-precios: {
-  listo: 40,          // cualquier diseño del catálogo
-  personalizado: 60,  // diseños personalizados
-},
-```
-
-### Activar o desactivar la temporada
-
-En `src/config/sitio.ts`, dentro de `temporada`:
-
-```ts
-temporada: {
-  activa: true,               // false para ocultar la franja
-  coleccion: 'dia-de-muertos', // colección a la que lleva el enlace
-  titulo: 'Temporada de Día de Muertos',
-  texto: 'Llévate 2 pares por',
-  precio: 200,
-},
-```
-
-### Cambiar el número de WhatsApp
-
-En `src/config/sitio.ts`:
-
-```ts
-whatsapp: {
-  numero: '525510727166',
-},
-```
-
-Escríbelo **con lada de país y sin espacios, signos ni guiones**. Para un celular de México: `52` + los 10 dígitos.
-
-En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de mayoreo, las opciones de los kits y las preguntas frecuentes (`preguntas.aretes` y `preguntas.kits`, una lista por página).
-
-### Kits navideños ("Arma tu kit")
-
-Cada kit trae **1 vela aromática de 100 g en frasco (dura de 20 a 25 horas), 2 jabones artesanales y 1 nacimiento pequeño** (`sitio.kits.contenido`), y está listo en una semana. El peso, la duración de la vela y el tiempo de entrega están al inicio de `src/config/sitio.ts`. Los dos jabones salen iguales: el pedido lleva una sola forma, color y aroma de jabón.
-
-No tienen catálogo: quien visita arma su kit en `/kits-navidenos/` y la API guarda el texto tal cual (`POST /api/pedidos`). De dónde sale cada opción:
-
-| Opción | Dónde se cambia |
+| Variable | Uso |
 | --- | --- |
-| Colores y aromas del jabón y de la vela | Pestaña **Kits** del panel de la API. Solo salen los marcados como disponibles, cada uno en la pieza que le marques (jabón, vela o ambos). Hay que volver a publicar el sitio. |
-| Formas del jabón y toppings de la vela | `sitio.kits` en `src/config/sitio.ts`, porque cada uno tiene su dibujo en la vista previa. |
-| Fotos de "Así quedan" | Pestaña **Kits** del panel (fotos de categoría `kits`). Sin fotos, la sección no sale. |
+| `API_URL` | URL pública de la API. La usan el build y el navegador (pedidos, diseñador). |
+| `API_USUARIO`, `API_PASSWORD` | Solo el build, para descargar el catálogo. Nunca llegan al navegador. |
+| `SITE_URL` | Opcional. Dominio para enlaces absolutos y sitemap. |
 
-Si el panel no tiene ningún color o aroma disponible para una pieza (o la API todavía no tiene el módulo de kits), se usan los de `sitio.kits` y el build lo avisa.
-
-```ts
-kits: {
-  jabon: {
-    formas: [{ nombre: 'Copo de nieve', figura: 'copo' }, …],
-    // figura: copo, arbol, santa, jengibre, regalo, estrella, cuadrado, ovalo u ovalo-cavidad
-  },
-  vela: {
-    toppings: [{ nombre: 'Canela en raja', figura: 'canela' }, …],
-    // figura: naranja, canela, anis, flores, rosas, manzanilla, cafe, piedras o ninguno
-  },
-},
-```
-
-`figura` solo decide el dibujo de la vista previa; el nombre es lo que le llega al panel.
-
-- **Con `API_URL`**, el pedido se guarda en la API y aparece en la pestaña **Pedidos** del panel. La API debe tener la rama con `/api/pedidos` desplegada y el dominio del sitio en `CORS_ORIGINS`. Si la API no responde, el visitante ve el error y un botón para mandar el mismo pedido por WhatsApp.
-- **Sin `API_URL`**, el botón dice "Pedir por WhatsApp" y abre el chat con el pedido ya escrito.
-
-Las reglas (campos obligatorios, largo máximo, correo o teléfono válido) están en `src/domain/kits.ts` y son las mismas que valida la API.
-
-### Categorías de aretes
-
-Se administran en la pestaña **Categorías** del panel de la API (arracadas, broqueles…). `npm run api:sincronizar` las descarga junto con los productos y el catálogo muestra un segundo filtro, **Tipo**, cuando sirve (más de una categoría, o una que no tienen todos). Si la API todavía no tiene categorías, el filtro no aparece.
-
-### Diseñador ("Diseña tus aretes")
-
-La sección no menciona la IA en ningún texto visible. Llama a `POST /api/disenos` de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) desde el navegador del visitante. Para que aparezca:
-
-1. Define `API_URL` al compilar: en `.env` para local (`API_URL=http://localhost:3000`) y en las variables del proyecto en Vercel para producción. Es la misma variable que usa `npm run api:sincronizar`. **Queda escrita en la página**, así que debe ser la URL pública del túnel, nunca una con credenciales.
-2. En la API, agrega el dominio del sitio a `CORS_ORIGINS` (`https://aalcuadrado.antonioalonso.com.mx` y `https://front-aalcuadrado.vercel.app`).
-3. La sección arranca oculta y se muestra solo si `GET /api/disenos` responde `disponible: true`. Si la API está apagada, sin llave de OpenAI o sin cupo del día, no se ve.
-
-Las palabras que no se aceptan están en `src/domain/palabras-prohibidas.ts`. Agrega o quita palabras ahí, en minúsculas y sin acentos. La revisión es del lado del navegador: evita gastar imágenes en ideas que no se van a aceptar, pero alguien que llame a la API directamente se la puede saltar.
-
----
-
-## 4. Publicar los cambios
-
-El sitio está en **Vercel** y se publica solo cada vez que hay cambios en la rama `main` (un `git push`, un merge o un cambio desde Pages CMS). En uno o dos minutos queda en `https://aalcuadrado.antonioalonso.com.mx`.
-
-```bash
-npm run productos:validar   # opcional, para revisar antes
-git add .
-git commit -m "Agrego calavera catrina"
-git push
-```
-
-Antes de compilar, Vercel corre `npm run api:sincronizar` y `npm run productos:validar` (script `prebuild`). Si la API no responde o un producto tiene errores, el despliegue falla y el sitio se queda como estaba; el detalle se ve en **Deployments** del proyecto en Vercel.
-
-Variables del proyecto en Vercel (*Settings → Environment Variables*):
-
-| Variable | Para qué |
-| --- | --- |
-| `API_URL`, `API_USUARIO`, `API_PASSWORD` | Descargar productos y fotos de la API, y la URL del diseñador. |
-| `SITE_URL` | Opcional. Si no está, se usa el dominio de producción del proyecto. |
-
-Si cambias algo en el panel de la API, usa su botón **Publicar sitio** (Deploy Hook de Vercel) para volver a compilar sin hacer commit.
-
----
-
-## 5. Cómo está organizado el proyecto
+Estructura:
 
 ```
 src/
-  content/
-    productos/<producto>.json ← datos de cada producto (los edita Pages CMS)
-    galeria.json             ← fotos de ambiente y su descripción
-    fotos/productos/         ← fotos de los productos
-    fotos/galeria/           ← fotos de ambiente
-  config/sitio.ts            ← WhatsApp, redes, temporada, precios, opciones de kits, preguntas
-  config/rutas.ts            ← direcciones de las páginas (/, /aretes/, /kits-navidenos/)
-  domain/                    ← tipos y reglas de los datos (esquemas Zod, pedido de kit)
-  data/                      ← lectura del catálogo (JSON del repositorio y de la API)
-  services/pedidos.ts        ← arma los enlaces de WhatsApp
-  services/disenos.ts        ← cliente del diseñador con IA (/api/disenos)
-  services/kits.ts           ← cliente de pedidos de kits (/api/pedidos)
-  pages/                     ← portada, aretes/ y kits-navidenos/
-  components/                ← secciones (inicio/, catalogo/, kits/, visor/ y las comunes)
-  scripts/                   ← interactividad (visor, tarjetas, colores, diseñador, kit)
-  styles/                    ← colores, tipografía y estilos base
-scripts/                     ← validar productos, generar ejemplos e imagen OG
-docs/arquitectura.md         ← decisiones técnicas y cómo crecer a un backend
-.pages.yml                   ← campos del panel de Pages CMS
+  pages/        rutas: index, aretes/, kits-navidenos/, velas/
+  components/   secciones por página (inicio/, catalogo/, kits/, velas/, visor/) y comunes
+  scripts/      islas del navegador
+  services/     CanalPedidos, ClienteEncargos, ClienteDisenos
+  data/         CatalogoRepository y su implementación
+  domain/       esquemas Zod y reglas puras
+  config/       sitio.ts (negocio) y rutas.ts
+  content/      catálogo de respaldo en JSON y fotos (Pages CMS)
+  styles/       tokens de diseño y estilos base
+scripts/        sincronizar-api, validar-productos, generar-og, generar-ejemplos
+docs/           arquitectura, ADR y manual de operación
 ```
+
+---
+
+## 12. Documentación
+
+| Documento | Para quién |
+| --- | --- |
+| [docs/arquitectura.md](docs/arquitectura.md) | Desarrolladores: detalle de cada capa, integración con la API y cómo evolucionar. |
+| [docs/adr/](docs/adr/) | Arquitectura: por qué el sistema es como es. |
+| [docs/operacion.md](docs/operacion.md) | Quien administra el sitio: productos, fotos, precios, kits, velas y publicación. |
+| [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) · `docs/integracion-front.md` | Contrato completo de la API. |

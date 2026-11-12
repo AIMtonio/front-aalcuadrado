@@ -1,0 +1,165 @@
+---
+/**
+ * Toppings de una vela, vistos desde arriba sobre la cera. Están dibujados alrededor
+ * de (250, 117); `transform` los mueve a la superficie de cada vela. Solo se ve el
+ * que tiene `data-activa`; `src/scripts/kit.ts` y `vela.ts` lo cambian al elegir.
+ */
+import type { FiguraTopping } from '@/domain/kits';
+import { estrella } from './dibujo';
+
+interface Props {
+  topping: FiguraTopping;
+  transform?: string;
+}
+
+const { topping, transform } = Astro.props;
+const activa = (valor: FiguraTopping) => (valor === topping ? '' : undefined);
+---
+
+<g class="toppings" transform={transform}>
+  <g data-topping="naranja" data-activa={activa('naranja')}>
+    <circle cx="228" cy="117" r="10" class="toppings__naranja" />
+    <path d="M228 109v16M220 117h16M222.5 111.5l11 11M233.5 111.5l-11 11" class="toppings__gajos" />
+    <circle cx="273" cy="116" r="8.5" class="toppings__naranja" />
+    <path d="M273 109.5v13M266.5 116h13" class="toppings__gajos" />
+  </g>
+  <g data-topping="canela" data-activa={activa('canela')}>
+    <rect x="226" y="111" width="46" height="7" rx="3.5" transform="rotate(-10 249 114)" class="toppings__canela" />
+    <rect x="230" y="114" width="42" height="7" rx="3.5" transform="rotate(8 251 117)" class="toppings__canela" />
+  </g>
+  <g data-topping="anis" data-activa={activa('anis')}>
+    <polygon points={estrella(231, 117, 10, 3.5, 8)} class="toppings__anis" />
+    <polygon points={estrella(270, 115, 8.5, 3, 8)} class="toppings__anis" />
+  </g>
+  <g data-topping="flores" data-activa={activa('flores')}>
+    {
+      [
+        [228, 116, '#E4007C'],
+        [252, 121, '#9B7BD4'],
+        [272, 114, '#F2B705'],
+      ].map(([x, y, color]) => (
+        <g fill={color as string}>
+          {[0, 72, 144, 216, 288].map((g) => (
+            <circle cx={x} cy={(y as number) - 4.5} r="3.6" transform={`rotate(${g} ${x} ${y})`} />
+          ))}
+          <circle cx={x} cy={y} r="2.4" fill="#FFF6D8" />
+        </g>
+      ))
+    }
+  </g>
+  <g data-topping="rosas" data-activa={activa('rosas')}>
+    {
+      [
+        [229, 116],
+        [252, 121],
+        [272, 114],
+      ].map(([x, y]) => (
+        <g transform={`translate(${x} ${y})`}>
+          <ellipse cx="6" cy="3" rx="4" ry="2" fill="#4E7A3A" transform="rotate(25 6 3)" />
+          <circle r="6" class="toppings__rosa" />
+          <path d="M-2.5 0.5a2.5 2.5 0 1 1 2.5 2.5M-4 -1a4.5 4.5 0 0 1 7-2" class="toppings__rosa-petalos" />
+        </g>
+      ))
+    }
+  </g>
+  <g data-topping="manzanilla" data-activa={activa('manzanilla')}>
+    {
+      [
+        [229, 116],
+        [251, 121],
+        [272, 114],
+      ].map(([x, y]) => (
+        <g transform={`translate(${x} ${y})`}>
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((g) => (
+            <ellipse cx="0" cy="-4.5" rx="1.8" ry="3.4" fill="#FFFDF5" stroke="rgb(23 20 43 / 0.15)" stroke-width="0.5" transform={`rotate(${g})`} />
+          ))}
+          <circle r="2.6" fill="#F2B705" />
+        </g>
+      ))
+    }
+  </g>
+  <g data-topping="cafe" data-activa={activa('cafe')}>
+    {
+      [
+        [226, 116, -20],
+        [238, 120, 30],
+        [250, 114, 70],
+        [262, 120, -40],
+        [274, 115, 15],
+        [246, 123, -70],
+      ].map(([x, y, g]) => (
+        <g transform={`translate(${x} ${y}) rotate(${g})`}>
+          <ellipse rx="4.6" ry="3.2" class="toppings__cafe" />
+          <path d="M-3.4 0q1.7-1.4 3.4 0t3.4 0" class="toppings__cafe-linea" />
+        </g>
+      ))
+    }
+  </g>
+  <g data-topping="piedras" data-activa={activa('piedras')}>
+    {
+      [
+        [227, 117, 7, 4.5, '#8E949A'],
+        [241, 121, 6, 4, '#C9C4BC'],
+        [256, 115, 7.5, 4.8, '#6F757B'],
+        [270, 120, 6.5, 4.2, '#B4ADA3'],
+      ].map(([x, y, rx, ry, color]) => (
+        <g>
+          <ellipse cx={x} cy={y} rx={rx} ry={ry} fill={color as string} />
+          <ellipse cx={(x as number) - 2} cy={(y as number) - 1.5} rx={(rx as number) / 2.6} ry="1.1" fill="rgb(255 255 255 / 0.45)" />
+        </g>
+      ))
+    }
+  </g>
+</g>
+
+<style>
+  [data-topping] {
+    display: none;
+  }
+
+  [data-topping][data-activa] {
+    display: inline;
+  }
+
+  .toppings__naranja {
+    fill: #f08a24;
+    stroke: #fbd38d;
+    stroke-width: 2;
+  }
+
+  .toppings__gajos {
+    stroke: #fbd38d;
+    stroke-width: 1.2;
+  }
+
+  .toppings__canela {
+    fill: #8a4b2a;
+    stroke: #5e3018;
+    stroke-width: 1;
+  }
+
+  .toppings__anis {
+    fill: #6b3a22;
+  }
+
+  .toppings__rosa {
+    fill: #a3203a;
+  }
+
+  .toppings__rosa-petalos {
+    fill: none;
+    stroke: #e3758a;
+    stroke-width: 1.1;
+    stroke-linecap: round;
+  }
+
+  .toppings__cafe {
+    fill: #4a2c1d;
+  }
+
+  .toppings__cafe-linea {
+    fill: none;
+    stroke: #8a5a3b;
+    stroke-width: 0.9;
+  }
+</style>

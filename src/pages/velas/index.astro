@@ -1,0 +1,53 @@
+---
+import Base from '@/layouts/Base.astro';
+import HeroVelas from '@/components/velas/HeroVelas.astro';
+import FotosVelas from '@/components/velas/FotosVelas.astro';
+import ArmaTuVela from '@/components/velas/ArmaTuVela.astro';
+import Visor from '@/components/visor/Visor.astro';
+import { elementoDeGaleria } from '@/components/visor/datos';
+import Proceso from '@/components/Proceso.astro';
+import Preguntas from '@/components/Preguntas.astro';
+import { catalogo } from '@/data';
+import { rutas } from '@/config/rutas';
+import { sitio } from '@/config/sitio';
+import { categoriaDeVela } from '@/domain/catalogo';
+import { NOMBRES_TIPO_VELA } from '@/domain/velas';
+
+// Fotos de cada tipo (pestaña Velas del panel). Sin fotos, "Así se ven" no sale.
+const fotos = await catalogo.listarFotosVelas();
+const { tipos } = await catalogo.opcionesVela();
+const elementosVisor = await Promise.all(
+  tipos
+    .filter(({ tipo }) => fotos[tipo].length > 0)
+    .map(({ tipo }) => elementoDeGaleria(fotos[tipo], categoriaDeVela(tipo), `Velas ${NOMBRES_TIPO_VELA[tipo].toLowerCase()}`)),
+);
+const urlPagina = new URL(rutas.velas, Astro.site).href;
+
+const pasos = [
+  {
+    titulo: 'Arma tu vela',
+    texto: 'Elige el tipo (en recipiente, de molde o en jícara), el tamaño, el color, el aroma y el topping. En recipiente también puede ser marmoleada.',
+  },
+  {
+    titulo: 'Te cotizamos',
+    texto: 'Te escribimos con el precio. No pagas nada hasta confirmar.',
+  },
+  {
+    titulo: 'La hacemos a mano',
+    texto: `En ${sitio.velas.entrega} vertimos tu vela y te avisamos para que la recojas en ${sitio.ciudad}.`,
+  },
+];
+---
+
+<Base
+  linea="velas"
+  titulo={`${sitio.velas.nombre} · ${sitio.nombre}`}
+  descripcion={`${sitio.velas.descripcion} Arma la tuya en línea y te la cotizamos.`}
+>
+  <HeroVelas tipos={tipos} />
+  <FotosVelas fotos={fotos} />
+  <Proceso id="como-funciona" titulo="Cómo funciona" pasos={pasos} />
+  <ArmaTuVela fotos={fotos} />
+  <Preguntas preguntas={sitio.preguntas.velas} alterna={false} />
+  {elementosVisor.length > 0 && <Visor elementos={elementosVisor} urlSitio={urlPagina} />}
+</Base>

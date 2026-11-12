@@ -8,6 +8,7 @@ export const rutas = {
   inicio: base,
   aretes: `${base}aretes/`,
   kits: `${base}kits-navidenos/`,
+  velas: `${base}velas/`,
 } as const;
 
 /** Línea de producto de cada página: decide la pestaña activa y los enlaces del encabezado. */

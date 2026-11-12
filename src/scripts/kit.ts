@@ -3,14 +3,14 @@
  * revisa el pedido y lo manda a la API, o por WhatsApp si no hay API o falla.
  */
 import { CAMPOS_KIT, revisarPedido, type CampoKit, type PedidoKit } from '@/domain/kits';
-import { ClienteKits, ErrorPedido } from '@/services/kits';
+import { ClienteEncargos, ErrorPedido } from '@/services/encargos';
 import { sitio } from '@/config/sitio';
 import { pedidos } from '@/services/pedidos';
 
 function iniciarKit(formulario: HTMLFormElement) {
   const seccion = formulario.closest('section')!;
   const $ = <T extends Element>(selector: string) => seccion.querySelector<T>(selector)!;
-  const cliente = formulario.dataset.api ? new ClienteKits(formulario.dataset.api) : null;
+  const cliente = formulario.dataset.api ? new ClienteEncargos(formulario.dataset.api, 'kit') : null;
 
   const vista = $<SVGElement>('[data-vista-kit]');
   const aviso = $<HTMLElement>('[data-aviso]');

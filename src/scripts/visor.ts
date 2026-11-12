@@ -1,7 +1,7 @@
 /**
  * Visor de fotos (lightbox) sobre <dialog> nativo.
  *
- * - Enlace profundo: #producto/<slug>/<n>, #galeria/<n> o #kits/<n>. Abrir el visor
+ * - Enlace profundo: #producto/<slug>/<n>, #galeria/<n>, #kits/<n> o #velas-<tipo>/<n>. Abrir el visor
  *   agrega una entrada al historial, así que "atrás" lo cierra.
  * - Navegación con teclado, botones, miniaturas y deslizando el dedo.
  * - Zoom con doble clic / doble toque, pellizco y Ctrl + rueda; arrastre con zoom.
@@ -14,7 +14,7 @@ const ESCALA_MAX = 4;
 const ESCALA_DOBLE_TOQUE = 2.5;
 const UMBRAL_DESLIZAR = 50;
 
-const REGEX_HASH = /^#(producto\/[a-z0-9-]+|galeria|kits)(?:\/(\d+))?$/i;
+const REGEX_HASH = /^#(producto\/[a-z0-9-]+|galeria|kits|velas-[a-z]+)(?:\/(\d+))?$/i;
 
 export function iniciarVisor() {
   const dialogo = document.querySelector<HTMLDialogElement>('#visor');
@@ -103,7 +103,7 @@ export function iniciarVisor() {
 
   // Recordar qué abrió el visor para devolverle el foco al cerrar.
   document.addEventListener('click', (e) => {
-    const enlace = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#producto/"], a[href^="#galeria/"], a[href^="#kits/"]');
+    const enlace = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#producto/"], a[href^="#galeria/"], a[href^="#kits/"], a[href^="#velas-"]');
     if (!enlace) return;
     origen = enlace.closest<HTMLElement>('[data-tarjeta]')?.querySelector<HTMLElement>('[data-foto]:not([tabindex])') ?? enlace;
     conHistorial = true;

@@ -1,5 +1,6 @@
 import type { Categoria, Coleccion, FotoGaleria, Producto } from '@/domain/catalogo';
 import type { OpcionesKit } from '@/domain/kits';
+import type { OpcionesVela, TipoVela } from '@/domain/velas';
 
 /**
  * Puerta de entrada a los datos del catálogo.
@@ -20,4 +21,8 @@ export interface CatalogoRepository<TImagen = unknown> {
   listarFotosKits(): Promise<FotoGaleria<TImagen>[]>;
   /** Colores y aromas disponibles para el jabón y la vela. */
   opcionesKit(): Promise<OpcionesKit>;
+  /** Fotos de cómo se ve cada tipo de vela individual, en el orden del panel. */
+  listarFotosVelas(): Promise<Record<TipoVela, FotoGaleria<TImagen>[]>>;
+  /** Tipos con sus tamaños o moldes disponibles, y los colores y aromas para velas. */
+  opcionesVela(): Promise<OpcionesVela>;
 }

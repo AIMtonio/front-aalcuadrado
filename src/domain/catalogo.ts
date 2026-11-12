@@ -10,6 +10,7 @@
 import { z } from 'zod';
 
 import { COLECCIONES, type ColeccionId } from './colecciones.ts';
+import { TIPOS_VELA, type TipoVela } from './velas.ts';
 
 export { COLECCIONES, NOMBRES_COLECCION, type ColeccionId } from './colecciones.ts';
 
@@ -142,10 +143,16 @@ export const ProductoApiSchema = z.object({
   colores: z.array(ColorSchema),
 });
 
+/** Categoría de fotos del panel con las fotos de un tipo de vela: `velas-recipiente`, `velas-molde`… */
+export const categoriaDeVela = (tipo: TipoVela) => `velas-${tipo}` as const;
+export type CategoriaFotoVela = ReturnType<typeof categoriaDeVela>;
+
+const CATEGORIAS_FOTO = ['productos', 'galeria', 'kits', ...TIPOS_VELA.map(categoriaDeVela)] as const;
+
 /** Una foto subida desde el panel de la API, ya descargada a `src/content/fotos/api/`. */
 export const FotoApiSchema = z.object({
   imagen: RutaImagenSchema,
-  categoria: z.enum(['productos', 'galeria', 'kits']),
+  categoria: z.enum(CATEGORIAS_FOTO),
   producto: z.string().nullable(),
   color: z.string().nullable(),
   alt: z.string().nullable(),
@@ -164,6 +171,19 @@ export const KitsApiSchema = z.object({
   aromas: z.array(OpcionKitApiSchema),
 });
 
+/** Un tamaño o molde de vela individual (pestaña Velas del panel). Solo llegan los disponibles. */
+export const PresentacionVelaApiSchema = z.object({
+  tipo: z.enum(TIPOS_VELA),
+  nombre: z.string().min(1),
+  gramos: z.number().int().positive().nullable(),
+  marmoleable: z.boolean(),
+  orden: z.number(),
+});
+
+export const VelasApiSchema = z.object({
+  presentaciones: z.array(PresentacionVelaApiSchema),
+});
+
 /** Lo que escribe `npm run api:sincronizar` en `src/content/catalogo-api.json`. Las fotos ya vienen en orden. */
 export const CatalogoApiJsonSchema = z.object({
   productos: z.array(ProductoApiSchema),
@@ -172,6 +192,8 @@ export const CatalogoApiJsonSchema = z.object({
   fotos: z.array(FotoApiSchema),
   /** `null` si la API todavía no tiene colores y aromas de kits (o el manifiesto es de antes). */
   kits: KitsApiSchema.nullable().default(null),
+  /** `null` si la API todavía no tiene el módulo de velas (o el manifiesto es de antes). */
+  velas: VelasApiSchema.nullable().default(null),
 });
 export type CatalogoApi = z.infer<typeof CatalogoApiJsonSchema>;
 

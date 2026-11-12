@@ -12,6 +12,7 @@ import {
   normalizarRuta,
   ordenNatural,
   textoDesdeArchivo,
+  categoriaDeVela,
   type CatalogoApi,
   type Categoria,
   type CategoriaProducto,
@@ -24,6 +25,7 @@ import {
   type Producto,
 } from '@/domain/catalogo';
 import type { OpcionesKit } from '@/domain/kits';
+import { TIPOS_VELA, admiteMarmoleado, type OpcionesVela, type PresentacionVela, type TipoVela } from '@/domain/velas';
 import type { CatalogoRepository } from './CatalogoRepository';
 
 /*
@@ -235,8 +237,8 @@ function construirProductos(): Producto<Imagen>[] {
   );
 }
 
-/** Las fotos de la API de una categoría sin producto (galería o kits), en el orden del panel. */
-function fotosSueltasDeApi(categoria: 'galeria' | 'kits', contexto: string): FotoGaleria<Imagen>[] {
+/** Las fotos de la API de una categoría sin producto (galería, kits o un tipo de vela), en el orden del panel. */
+function fotosSueltasDeApi(categoria: Exclude<CatalogoApi['fotos'][number]['categoria'], 'productos'>, contexto: string): FotoGaleria<Imagen>[] {
   const fotos: FotoGaleria<Imagen>[] = [];
   for (const { imagen, alt } of fotosApi.filter((f) => f.categoria === categoria)) {
     const src = buscarImagen(imagen, contexto);
@@ -304,11 +306,42 @@ function construirOpcionesKit(): OpcionesKit {
   return { jabon: pieza('jabon', 'el jabón'), vela: pieza('vela', 'la vela') };
 }
 
+/**
+ * Tamaños y moldes de las velas: los disponibles del panel o, si la API todavía no
+ * tiene el módulo de velas (o no tiene ninguno disponible), los de `sitio.velas`.
+ * Los colores y aromas son los de la vela de los kits.
+ */
+function construirOpcionesVela(opcionesKit: OpcionesKit): OpcionesVela {
+  const deLaApi = catalogoApi?.velas?.presentaciones ?? [];
+  if (catalogoApi?.velas && deLaApi.length === 0) {
+    avisar('El panel no tiene tamaños ni moldes de velas disponibles; se usan los de src/config/sitio.ts.');
+  }
+  const presentaciones: PresentacionVela[] = deLaApi.length > 0 ? deLaApi : [...sitio.velas.presentaciones];
+  return {
+    tipos: TIPOS_VELA.map((tipo) => ({
+      tipo,
+      presentaciones: presentaciones
+        .filter((p) => p.tipo === tipo)
+        .map(({ nombre, gramos, marmoleable }) => ({
+          tipo,
+          nombre,
+          gramos,
+          // En jícara nunca, aunque el panel lo permitiera.
+          marmoleable: marmoleable && admiteMarmoleado(tipo),
+        })),
+    })).filter((t) => t.presentaciones.length > 0),
+    colores: opcionesKit.vela.colores,
+    aromas: opcionesKit.vela.aromas,
+  };
+}
+
 export class CatalogoArchivosLocales implements CatalogoRepository<Imagen> {
   #productos?: Producto<Imagen>[];
   #galeria?: FotoGaleria<Imagen>[];
   #fotosKits?: FotoGaleria<Imagen>[];
   #opcionesKit?: OpcionesKit;
+  #fotosVelas?: Record<TipoVela, FotoGaleria<Imagen>[]>;
+  #opcionesVela?: OpcionesVela;
 
   async listarProductos() {
     this.#productos ??= construirProductos();
@@ -352,5 +385,17 @@ export class CatalogoArchivosLocales implements CatalogoRepository<Imagen> {
   async opcionesKit() {
     this.#opcionesKit ??= construirOpcionesKit();
     return this.#opcionesKit;
+  }
+
+  async listarFotosVelas() {
+    this.#fotosVelas ??= Object.fromEntries(
+      TIPOS_VELA.map((tipo) => [tipo, fotosSueltasDeApi(categoriaDeVela(tipo), 'Velas')]),
+    ) as Record<TipoVela, FotoGaleria<Imagen>[]>;
+    return this.#fotosVelas;
+  }
+
+  async opcionesVela() {
+    this.#opcionesVela ??= construirOpcionesVela(await this.opcionesKit());
+    return this.#opcionesVela;
   }
 }

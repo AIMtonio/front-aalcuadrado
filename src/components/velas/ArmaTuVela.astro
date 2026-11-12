@@ -1,0 +1,611 @@
+---
+/**
+ * "Arma tu vela": quien visita elige tipo, tamaño o molde, color, aroma, topping y,
+ * si se puede, marmoleado; deja su contacto y el pedido se manda a la API
+ * (`POST /api/velas/pedidos`). Sin `API_URL` al compilar, el mismo formulario manda
+ * el pedido por WhatsApp.
+ */
+import type { ImageMetadata } from 'astro';
+import { Picture } from 'astro:assets';
+import { API_URL } from 'astro:env/server';
+import { sitio } from '@/config/sitio';
+import { catalogo } from '@/data';
+import { MAXIMOS_VELA, MAX_CANTIDAD_VELAS, NOMBRES_TIPO_VELA, nombreConGramos, type TipoVela } from '@/domain/velas';
+import type { FotoGaleria } from '@/domain/catalogo';
+import { pedidos } from '@/services/pedidos';
+import Icono from '@/components/Icono.astro';
+import VistaVela from './VistaVela.astro';
+import '@/styles/armar.css';
+
+interface Props {
+  /** Fotos de cada tipo (pestaña Velas del panel): ilustran cada opción y la vista previa. */
+  fotos: Record<TipoVela, FotoGaleria<ImageMetadata>[]>;
+}
+
+const { fotos } = Astro.props;
+const apiUrl = API_URL?.trim().replace(/\/+$/, '') || undefined;
+// Tamaños y moldes del panel (pestaña Velas); colores y aromas, los de la vela de los kits.
+const { tipos, colores, aromas } = await catalogo.opcionesVela();
+const toppings = sitio.velas.toppings;
+
+/** Chica, mediana y grande se dibujan a distinta escala; un solo tamaño (Cupcake), a escala normal. */
+const escala = (i: number, total: number) => (total > 1 ? 0.85 + (0.3 * i) / (total - 1) : 1);
+
+const inicial = {
+  tipo: tipos[0]!,
+  presentacion: tipos[0]!.presentaciones[0]!,
+  color: colores[0]!,
+  veta: colores[1] ?? colores[0]!,
+  aroma: aromas[0]!,
+  topping: toppings[0],
+};
+
+const opcionesSimples = [
+  { campo: 'color', etiqueta: 'Color', opciones: colores },
+  { campo: 'aroma', etiqueta: 'Aroma', opciones: aromas.map((nombre) => ({ nombre })) },
+  { campo: 'topping', etiqueta: 'Topping', opciones: toppings },
+] as const;
+
+const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
+---
+
+<section class="seccion seccion--alterna arma arma--vela" id="arma-tu-vela" aria-labelledby="arma-vela-titulo">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <h2 id="arma-vela-titulo">Arma tu vela</h2>
+      <p>
+        Elige el tipo, el tamaño y cómo quieres que se vea y huela. Te escribimos para confirmar el precio y tu vela está
+        lista en {sitio.velas.entrega}.
+      </p>
+    </div>
+
+    <form class="arma__rejilla" data-vela data-api={apiUrl} novalidate>
+      <div class="arma__opciones">
+        <fieldset class="arma__grupo" aria-describedby="error-tipo">
+          <legend>Tipo de vela</legend>
+          <div class="tipos-vela">
+            {
+              tipos.map(({ tipo, presentaciones }, i) => {
+                const foto = fotos[tipo][0];
+                return (
+                  <label class="tipo-vela">
+                    <input type="radio" name="tipo" value={tipo} checked={i === 0} />
+                    <span class="tipo-vela__media" aria-hidden="true">
+                      {foto ? (
+                        <Picture
+                          src={foto.src}
+                          alt=""
+                          formats={['avif', 'webp']}
+                          widths={[240, 400]}
+                          sizes="(min-width: 60rem) 12rem, 30vw"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <VistaVela tipo={tipo} vela={colores[0]!.hex} topping="ninguno" />
+                      )}
+                    </span>
+                    <span class="tipo-vela__nombre">{NOMBRES_TIPO_VELA[tipo]}</span>
+                    <span class="tipo-vela__texto">
+                      {sitio.velas.tipos[tipo].descripcion}
+                      {presentaciones.length > 1 && <span class="visualmente-oculto"> ({presentaciones.map((p) => p.nombre).join(', ')})</span>}
+                    </span>
+                  </label>
+                );
+              })
+            }
+          </div>
+          <p class="arma__error" id="error-tipo" data-error="tipo" hidden></p>
+        </fieldset>
+
+        <fieldset class="arma__grupo">
+          <legend>Tu vela</legend>
+
+          {
+            tipos.map(({ tipo, presentaciones }, i) => (
+              <fieldset
+                class="arma__campo"
+                aria-describedby="error-presentacion"
+                data-presentaciones={tipo}
+                disabled={i !== 0}
+                hidden={i !== 0}
+              >
+                <legend>{tipo === 'molde' ? 'Molde' : 'Tamaño'}</legend>
+                <div class="fichas">
+                  {presentaciones.map((p, j) => (
+                    <label class="ficha">
+                      <input
+                        type="radio"
+                        name="presentacion"
+                        value={p.nombre}
+                        checked={i === 0 && j === 0}
+                        data-texto={nombreConGramos(p)}
+                        data-marmoleable={p.marmoleable ? '' : undefined}
+                        data-escala={escala(j, presentaciones.length).toFixed(2)}
+                      />
+                      <span>{nombreConGramos(p)}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ))
+          }
+          <p class="arma__error arma__error--suelto" id="error-presentacion" data-error="presentacion" hidden></p>
+
+          {
+            opcionesSimples.map(({ campo, etiqueta, opciones }) => (
+              <fieldset class="arma__campo" aria-describedby={`error-${campo}`} data-campo={campo}>
+                <legend>{etiqueta}</legend>
+                <div class="fichas">
+                  {opciones.map((o, i) => (
+                    <label class="ficha">
+                      <input
+                        type="radio"
+                        name={campo}
+                        value={o.nombre}
+                        checked={i === 0}
+                        data-hex={'hex' in o ? o.hex : undefined}
+                        data-figura={'figura' in o ? o.figura : undefined}
+                      />
+                      {'hex' in o && <span class="ficha__muestra" style={`--muestra:${o.hex}`} aria-hidden="true" />}
+                      <span>{o.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+                <p class="arma__error" id={`error-${campo}`} data-error={campo} hidden />
+              </fieldset>
+            ))
+          }
+
+          <fieldset class="arma__campo marmol" data-marmol-campo hidden={!inicial.presentacion.marmoleable}>
+            <legend>Marmoleado <span class="marmol__opcional">(opcional)</span></legend>
+            <label class="marmol__casilla">
+              <input type="checkbox" name="marmoleado" data-marmoleado />
+              <span>Quiero mi vela marmoleada, con vetas de un segundo color</span>
+            </label>
+            <fieldset class="arma__campo" aria-describedby="error-colorMarmoleado" data-vetas hidden>
+              <legend>Color de las vetas</legend>
+              <div class="fichas">
+                {
+                  colores.map((c) => (
+                    <label class="ficha">
+                      <input
+                        type="radio"
+                        name="colorMarmoleado"
+                        value={c.nombre}
+                        checked={c.nombre === inicial.veta.nombre}
+                        disabled={c.nombre === inicial.color.nombre}
+                        data-hex={c.hex}
+                      />
+                      <span class="ficha__muestra" style={`--muestra:${c.hex}`} aria-hidden="true" />
+                      <span>{c.nombre}</span>
+                    </label>
+                  ))
+                }
+              </div>
+              <p class="arma__error" id="error-colorMarmoleado" data-error="colorMarmoleado" hidden></p>
+            </fieldset>
+          </fieldset>
+          <p class="arma__nota-grupo marmol__no" data-marmol-no hidden={inicial.presentacion.marmoleable}>
+            Esta vela no se hace marmoleada{inicial.tipo.tipo === 'jicara' ? ': en jícara no se apreciaría' : ''}.
+          </p>
+        </fieldset>
+
+        <fieldset class="arma__grupo">
+          <legend>Detalles</legend>
+          <div class="arma__datos">
+            <div class="arma__texto">
+              <label for="vela-cantidad">¿Cuántas iguales?</label>
+              <div class="cantidad">
+                <button type="button" class="cantidad__boton" data-cantidad="-1" aria-label="Una menos">−</button>
+                <input
+                  id="vela-cantidad"
+                  name="cantidad"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max={MAX_CANTIDAD_VELAS}
+                  value="1"
+                  aria-describedby="vela-cantidad-ayuda error-cantidad"
+                  data-campo="cantidad"
+                />
+                <button type="button" class="cantidad__boton" data-cantidad="1" aria-label="Una más">+</button>
+              </div>
+              <p class="arma__ayuda" id="vela-cantidad-ayuda">Hasta {MAX_CANTIDAD_VELAS}; para más, escríbenos.</p>
+              <p class="arma__error" id="error-cantidad" data-error="cantidad" hidden></p>
+            </div>
+            <div class="arma__texto">
+              <label for="vela-notas">Notas <span class="marmol__opcional">(opcional)</span></label>
+              <textarea
+                id="vela-notas"
+                name="notas"
+                rows="3"
+                maxlength={MAXIMOS_VELA.notas}
+                placeholder="Por ejemplo: es para un regalo, la quiero para el 15 de diciembre…"
+                aria-describedby="error-notas"
+                data-campo="notas"></textarea>
+              <p class="arma__error" id="error-notas" data-error="notas" hidden></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="arma__grupo">
+          <legend>Tus datos</legend>
+          <div class="arma__datos">
+            <div class="arma__texto">
+              <label for="vela-nombre">Nombre</label>
+              <input
+                id="vela-nombre"
+                name="clienteNombre"
+                type="text"
+                autocomplete="name"
+                maxlength={MAXIMOS_VELA.clienteNombre}
+                required
+                aria-describedby="error-clienteNombre"
+                data-campo="clienteNombre"
+              />
+              <p class="arma__error" id="error-clienteNombre" data-error="clienteNombre" hidden></p>
+            </div>
+            <div class="arma__texto">
+              <label for="vela-contacto">Correo o teléfono</label>
+              <input
+                id="vela-contacto"
+                name="clienteContacto"
+                type="text"
+                inputmode="email"
+                autocomplete="email"
+                maxlength={MAXIMOS_VELA.clienteContacto}
+                required
+                placeholder="ana@correo.com o 999 123 4567"
+                aria-describedby="vela-contacto-ayuda error-clienteContacto"
+                data-campo="clienteContacto"
+              />
+              <p class="arma__ayuda" id="vela-contacto-ayuda">Solo lo usamos para cotizar tu vela.</p>
+              <p class="arma__error" id="error-clienteContacto" data-error="clienteContacto" hidden></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <p class="arma__aviso" role="alert" data-aviso hidden></p>
+
+        <div class="arma__enviar">
+          <button class="boton boton--cera" type="submit" data-enviar>
+            <Icono nombre={apiUrl ? 'palomita' : 'whatsapp'} />
+            <span data-enviar-texto>{apiUrl ? 'Mandar mi pedido' : 'Pedir por WhatsApp'}</span>
+          </button>
+          <a class="boton boton--contorno" href={pedidos.general('velas')} target="_blank" rel="noopener" data-whatsapp hidden>
+            <Icono nombre="whatsapp" />
+            Mandarlo por WhatsApp
+          </a>
+        </div>
+      </div>
+
+      <aside class="arma__vista" aria-labelledby="arma-vela-vista-titulo">
+        <h3 id="arma-vela-vista-titulo" class="visualmente-oculto">Tu vela</h3>
+        <div class="arma__lienzo">
+          <VistaVela
+            tipo={inicial.tipo.tipo}
+            vela={inicial.color.hex}
+            topping={inicial.topping.figura}
+            escala={escala(0, inicial.tipo.presentaciones.length)}
+          />
+        </div>
+        <div class="arma__resumen" aria-live="polite">
+          <div class="arma__resumen-grupo">
+            <p class="arma__resumen-titulo" data-resumen="tipo">{NOMBRES_TIPO_VELA[inicial.tipo.tipo]}</p>
+            <dl>
+              <div>
+                <dt>{inicial.tipo.tipo === 'molde' ? 'Molde' : 'Tamaño'}</dt>
+                <dd data-resumen="presentacion">{nombreConGramos(inicial.presentacion)}</dd>
+              </div>
+              <div>
+                <dt>Color</dt>
+                <dd data-resumen="color">{inicial.color.nombre}</dd>
+              </div>
+              <div>
+                <dt>Aroma</dt>
+                <dd data-resumen="aroma">{inicial.aroma}</dd>
+              </div>
+              <div>
+                <dt>Topping</dt>
+                <dd data-resumen="topping">{inicial.topping.nombre}</dd>
+              </div>
+              <div>
+                <dt>Marmoleado</dt>
+                <dd data-resumen="marmoleado">No</dd>
+              </div>
+              <div>
+                <dt>Cantidad</dt>
+                <dd data-resumen="cantidad">1</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        {
+          hayFotos && (
+            <div class="arma__fotos">
+              {tipos.map(({ tipo }, i) => (
+                <div data-fotos-tipo={tipo} hidden={i !== 0}>
+                  {fotos[tipo].length > 0 ? (
+                    <>
+                      <p>Así se ven las velas {NOMBRES_TIPO_VELA[tipo].toLowerCase()}</p>
+                      <ul role="list">
+                        {fotos[tipo].slice(0, 4).map((f, n) => (
+                          <li>
+                            <a href={`#velas-${tipo}/${n + 1}`} aria-label={`Ver foto ${n + 1}: ${f.alt}`}>
+                              <Picture src={f.src} alt="" formats={['avif', 'webp']} widths={[120, 240]} sizes="5rem" loading="lazy" />
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p>Pronto subiremos fotos de las velas {NOMBRES_TIPO_VELA[tipo].toLowerCase()}.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        }
+        <p class="arma__nota">Es una idea de cómo se verá: cada vela se hace a mano y puede variar un poco.</p>
+      </aside>
+    </form>
+
+    <div class="arma__listo" data-listo tabindex="-1" hidden>
+      <span class="arma__listo-icono" aria-hidden="true"><Icono nombre="palomita" /></span>
+      <h3 data-listo-titulo>¡Recibimos tu pedido!</h3>
+      <p data-listo-texto>Te escribimos pronto para confirmar el precio. Tu vela estará lista en {sitio.velas.entrega}.</p>
+      <div class="arma__listo-acciones">
+        <a class="boton boton--whatsapp" href={pedidos.general('velas')} target="_blank" rel="noopener" data-listo-whatsapp>
+          <Icono nombre="whatsapp" />
+          Avisar por WhatsApp
+        </a>
+        <button class="boton boton--contorno" type="button" data-otro>Armar otra vela</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import '@/scripts/vela';
+</script>
+
+<style>
+  /* ---------- Tipo de vela: tarjetas con foto ---------- */
+
+  .tipos-vela {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: var(--espacio-3);
+  }
+
+  .tipo-vela {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: var(--espacio-1);
+    padding: var(--espacio-2) var(--espacio-2) var(--espacio-3);
+    border: 2px solid var(--color-borde);
+    border-radius: var(--radio-md);
+    background: var(--color-papel);
+    cursor: pointer;
+    transition:
+      border-color var(--duracion-corta),
+      box-shadow var(--duracion-corta);
+  }
+
+  .tipo-vela:hover {
+    border-color: var(--arma-acento);
+  }
+
+  .tipo-vela input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .tipo-vela:has(input:checked) {
+    border-color: var(--arma-acento);
+    box-shadow: 0 0 0 2px var(--arma-acento);
+  }
+
+  .tipo-vela:has(input:focus-visible) {
+    outline: 3px solid var(--arma-acento);
+    outline-offset: 3px;
+  }
+
+  .tipo-vela__media {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    margin-bottom: var(--espacio-1);
+    padding: var(--espacio-2);
+    border-radius: var(--radio-sm);
+    background: var(--color-cera-suave);
+    overflow: hidden;
+  }
+
+  .tipo-vela__media:has(:global(img)) {
+    padding: 0;
+  }
+
+  .tipo-vela__media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .tipo-vela__nombre {
+    padding-inline: var(--espacio-1);
+    font-weight: 700;
+  }
+
+  .tipo-vela__texto {
+    padding-inline: var(--espacio-1);
+    color: var(--color-lavanda);
+    font-size: var(--texto-xs);
+  }
+
+  .arma__error--suelto {
+    margin-top: calc(var(--espacio-3) * -1);
+  }
+
+  /* ---------- Marmoleado ---------- */
+
+  .marmol__casilla {
+    display: flex;
+    align-items: center;
+    gap: var(--espacio-3);
+    min-height: 2.75rem;
+    font-size: var(--texto-sm);
+    cursor: pointer;
+  }
+
+  .marmol__casilla input {
+    flex: none;
+    width: 1.375rem;
+    height: 1.375rem;
+    margin: 0;
+    accent-color: var(--arma-acento);
+  }
+
+  .marmol__opcional {
+    color: var(--color-lavanda);
+    font-weight: 400;
+  }
+
+  .marmol [data-vetas] {
+    padding-left: var(--espacio-4);
+    border-left: 3px solid var(--color-cera-suave);
+  }
+
+  .ficha:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .ficha:has(input:disabled):hover {
+    border-color: var(--color-borde);
+  }
+
+  /* ---------- Cantidad ---------- */
+
+  .cantidad {
+    display: flex;
+    align-items: stretch;
+    width: fit-content;
+    border: 2px solid var(--color-borde);
+    border-radius: var(--radio-md);
+    background: var(--color-papel);
+    overflow: hidden;
+  }
+
+  .cantidad:focus-within {
+    border-color: var(--arma-acento);
+  }
+
+  .arma__texto .cantidad input {
+    width: 4rem;
+    min-height: 3rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: center;
+    font-weight: 700;
+    appearance: textfield;
+  }
+
+  .arma__texto .cantidad input:focus-visible {
+    box-shadow: none;
+  }
+
+  .cantidad input::-webkit-inner-spin-button,
+  .cantidad input::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  .cantidad__boton {
+    width: 3rem;
+    border: 0;
+    background: transparent;
+    color: var(--arma-acento);
+    font-size: var(--texto-lg);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .cantidad__boton:hover {
+    background: var(--color-cera-suave);
+  }
+
+  .arma__texto textarea {
+    width: 100%;
+    padding: var(--espacio-3) var(--espacio-4);
+    border: 2px solid var(--color-borde);
+    border-radius: var(--radio-md);
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    font: inherit;
+    resize: vertical;
+  }
+
+  .arma__texto textarea:focus-visible {
+    outline: none;
+    border-color: var(--arma-acento);
+    box-shadow: 0 0 0 3px var(--color-blanco), 0 0 0 5px var(--arma-acento);
+  }
+
+  .arma__texto textarea[aria-invalid='true'] {
+    border-color: var(--color-rojo);
+  }
+
+  /* ---------- Fotos del tipo elegido ---------- */
+
+  .arma__fotos {
+    padding-top: var(--espacio-4);
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+  }
+
+  .arma__fotos p {
+    margin-bottom: var(--espacio-2);
+    color: var(--color-lavanda);
+    font-size: var(--texto-xs);
+  }
+
+  .arma__fotos ul {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--espacio-2);
+  }
+
+  .arma__fotos a {
+    display: block;
+    aspect-ratio: 1;
+    border-radius: var(--radio-sm);
+    overflow: hidden;
+    cursor: zoom-in;
+  }
+
+  .arma__fotos :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--duracion-media) var(--curva-salida);
+  }
+
+  .arma__fotos a:hover :global(img) {
+    transform: scale(1.05);
+  }
+
+  .arma--vela .arma__lienzo {
+    padding-inline: 18%;
+    background:
+      radial-gradient(circle at 50% 30%, rgb(242 163 58 / 0.18), transparent 60%),
+      var(--color-alterno);
+  }
+</style>

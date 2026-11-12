@@ -1,6 +1,7 @@
 /**
  * Descarga el catálogo de la API (back-aalcuadrado): los productos, las fotos
- * subidas desde su panel y los colores y aromas de los kits. Las fotos van a src/content/fotos/api/ y los datos a
+ * subidas desde su panel, los colores y aromas de los kits y los tamaños y moldes
+ * de las velas. Las fotos van a src/content/fotos/api/ y los datos a
  * src/content/catalogo-api.json. Corre antes de compilar.
  * Sin API_URL no hace nada: el sitio usa solo los productos y fotos del repositorio.
  *
@@ -39,8 +40,8 @@ const { access_token } = await (
 ).json();
 const conToken = { headers: { Authorization: `Bearer ${access_token}` } };
 
-// Una API de antes de un módulo responde 404 en su ruta (por ejemplo /api/categorias
-// o /api/kits/colores): se sigue sin esos datos.
+// Una API de antes de un módulo responde 404 en su ruta (por ejemplo /api/categorias,
+// /api/kits/colores o /api/velas/presentaciones): se sigue sin esos datos.
 async function pedirOpcional(ruta) {
   const respuesta = await fetch(new URL(ruta, API_URL), conToken);
   if (respuesta.status === 404) return null;
@@ -48,12 +49,13 @@ async function pedirOpcional(ruta) {
   return respuesta.json();
 }
 
-const [productosApi, categoriasApi, imagenes, coloresKit, aromasKit] = await Promise.all([
+const [productosApi, categoriasApi, imagenes, coloresKit, aromasKit, presentacionesVela] = await Promise.all([
   pedir('/api/productos', conToken).then((r) => r.json()),
   pedirOpcional('/api/categorias').then((c) => c ?? []),
   pedir('/api/imagenes', conToken).then((r) => r.json()),
   pedirOpcional('/api/kits/colores'),
   pedirOpcional('/api/kits/aromas'),
+  pedirOpcional('/api/velas/presentaciones'),
 ]);
 
 // Se descarga todo de nuevo en cada compilación: así una foto borrada en el panel desaparece del sitio.
@@ -115,9 +117,17 @@ const kits =
       }
     : null;
 
-await writeFile(MANIFIESTO, `${JSON.stringify({ productos, categorias, fotos, kits }, null, 2)}\n`);
+// Tamaños y moldes de las velas individuales: solo los disponibles, ya agrupados por tipo y en
+// el orden del panel. `null` si la API no tiene el módulo: el sitio usa los de src/config/sitio.ts.
+const disponibles = (presentacionesVela ?? []).filter((p) => p.disponible);
+const velas = presentacionesVela
+  ? { presentaciones: disponibles.map(({ tipo, nombre, gramos, marmoleable, orden }) => ({ tipo, nombre, gramos, marmoleable, orden })) }
+  : null;
+
+await writeFile(MANIFIESTO, `${JSON.stringify({ productos, categorias, fotos, kits, velas }, null, 2)}\n`);
 console.log(
   `[api] ${productos.length} producto(s), ${categorias.length} categoría(s), ${fotos.length} foto(s)` +
     (kits ? `, ${kits.colores.length} color(es) y ${kits.aromas.length} aroma(s) de kits` : '') +
+    (velas ? `, ${velas.presentaciones.length} tamaño(s) o molde(s) de velas` : '') +
     ` descargados de ${API_URL}.`,
 );

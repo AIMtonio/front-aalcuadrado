@@ -4,43 +4,46 @@
 
 Sitio **100 % estático** hecho con **Astro + TypeScript (modo estricto)**. Al compilar, Astro lee los JSON de productos, optimiza las fotos y genera tres páginas: la portada (`/`), los aretes (`/aretes/`) y los kits navideños (`/kits-navidenos/`). El navegador no llama a ninguna API: los productos y las fotos que se administran desde el panel de [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) se descargan al compilar (ver *Productos y fotos desde la API*).
 
+La vista general (contexto, contenedores y flujos) está en el [README](../README.md); las decisiones, en [adr/](adr/). Este documento entra al detalle de cada capa.
+
 ```mermaid
 flowchart TB
   subgraph UI["Presentación (src/pages, src/components, src/scripts)"]
-    P[index.astro]
+    P["Páginas: / · /aretes/ · /kits-navidenos/"]
     C[Componentes .astro]
-    JS[TypeScript del navegador<br/>visor, tarjetas, filtros, menú]
+    JS["Islas del navegador<br/>visor · tarjetas · filtros · kit · diseñador"]
   end
 
   subgraph SERV["Servicios (src/services)"]
     PED["CanalPedidos<br/>(hoy: CanalWhatsApp)"]
+    CLI["ClienteKits · ClienteDisenos"]
   end
 
   subgraph DATOS["Acceso a datos (src/data)"]
     REPO["CatalogoRepository<br/>(interfaz)"]
     LOCAL[CatalogoArchivosLocales]
-    API["CatalogoApi<br/>(futuro)"]
   end
 
   subgraph DOM["Dominio (src/domain)"]
-    Z["Esquemas Zod y tipos<br/>Producto · FotoProducto · Color · Coleccion"]
+    Z["Esquemas Zod y reglas puras<br/>catálogo · kits · diseños"]
   end
 
-  CFG["Configuración<br/>src/config/sitio.ts"]
-  FS[("src/content/<br/>productos/*.json, galeria.json y fotos/")]
-  CMS["Pages CMS<br/>(commits a main)"]
-  BE[("Backend<br/>(futuro)")]
+  CFG["Configuración<br/>src/config/sitio.ts · rutas.ts"]
+  FS[("src/content/<br/>catalogo-api.json, JSON de respaldo y fotos")]
+  SYNC["scripts/sincronizar-api.mjs<br/>(prebuild)"]
+  BE[("back-aalcuadrado")]
 
   P --> REPO
   C --> PED
   JS --> PED
+  JS --> CLI
   REPO -.implementa.-> LOCAL
-  REPO -.implementa.-> API
   LOCAL --> FS
-  CMS --> FS
-  API -.-> BE
+  SYNC --> FS
+  SYNC -- "al compilar, con token" --> BE
+  CLI -- "en vivo, rutas públicas" --> BE
   LOCAL --> Z
-  API -.-> Z
+  CLI --> Z
   PED --> CFG
   C --> CFG
 ```
@@ -61,7 +64,7 @@ flowchart TB
 - Genera HTML estático: carga rápido en celular y se hospeda gratis.
 - `astro:assets` optimiza las fotos al compilar (AVIF/WebP, varios tamaños, `srcset`), sin servicios externos.
 - Permite cambiar a renderizado híbrido o de servidor con un adaptador, sin reescribir componentes.
-- Envía al navegador solo el JavaScript que se usa (aquí, unos 13 KB entre visor, tarjetas, filtros y menú).
+- Envía al navegador solo el JavaScript que se usa (visor, tarjetas, filtros, menú, formulario de kits y diseñador).
 
 **¿Por qué estático por ahora?**
 El catálogo cambia pocas veces por semana y las compras se cierran por WhatsApp. Un sitio estático no tiene costos, no se cae y no necesita mantenimiento de servidor. Cada cambio en el repositorio vuelve a publicar el sitio.
@@ -91,7 +94,9 @@ El script `prebuild` lo ejecuta antes de cada `npm run build`, así que corre so
 
 Después de cambiar productos o fotos hay que compilar de nuevo. Con Vercel, el panel tiene un botón **Publicar sitio** que llama al Deploy Hook del proyecto (la API guarda su URL en `DEPLOY_HOOK_URL`). Contrato completo: `docs/integracion-front.md` del backend.
 
-## Cómo migrar a un backend
+## Cómo pasar a leer la API en vivo
+
+Hoy la API se lee al compilar ([ADR 0002](adr/0002-catalogo-desde-la-api-al-compilar.md)). Si algún día hace falta leerla en cada visita (por ejemplo, inventario en tiempo real):
 
 1. **Crear `CatalogoApi`** en `src/data/CatalogoApi.ts` implementando `CatalogoRepository`. Debe validar las respuestas con los esquemas de `src/domain/` y devolver fotos con URL remota (en `FotoProducto.src`).
 2. **Cambiar una línea** en `src/data/index.ts`:

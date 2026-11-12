@@ -1,11 +1,13 @@
 /**
- * Cliente de pedidos de kits de la API (`POST /api/pedidos`).
+ * Cliente de los pedidos a la medida de la API: kits (`POST /api/pedidos`) y velas
+ * (`POST /api/velas/pedidos`).
  *
- * Es pública: la llama el navegador del visitante, sin token. La API solo guarda
+ * Son públicas: las llama el navegador del visitante, sin token. La API solo guarda
  * el pedido; el dueño lo cotiza desde la pestaña Pedidos del panel. Puro (solo
  * `fetch`) para poder usarlo en el navegador.
  */
 import type { PedidoKit } from '@/domain/kits';
+import type { PedidoVela } from '@/domain/velas';
 import { esLimiteDeApi, mensajesDeError, textoDeError, urlDeApi } from './api';
 
 export interface PedidoRecibido {
@@ -28,15 +30,26 @@ const TIEMPO_MAXIMO_MS = 20_000;
 const MENSAJE_LIMITE = 'Ya mandaste varios pedidos seguidos. Espera un minuto y vuelve a intentarlo.';
 const MENSAJE_GENERICO = 'No pudimos guardar tu pedido. Intenta de nuevo o mándanoslo por WhatsApp.';
 
-export class ClienteKits {
+/** Ruta de la API de cada tipo de encargo. */
+const RECURSOS = {
+  kit: 'pedidos',
+  vela: 'velas/pedidos',
+} as const;
+
+interface Encargos {
+  kit: PedidoKit;
+  vela: PedidoVela;
+}
+
+export class ClienteEncargos<T extends keyof Encargos> {
   readonly #url: string;
 
   /** `baseUrl`: la URL pública de la API, sin `/api` (por ejemplo `https://api.tudominio.com`). */
-  constructor(baseUrl: string) {
-    this.#url = urlDeApi(baseUrl, 'pedidos');
+  constructor(baseUrl: string, encargo: T) {
+    this.#url = urlDeApi(baseUrl, RECURSOS[encargo]);
   }
 
-  async enviar(pedido: PedidoKit): Promise<PedidoRecibido> {
+  async enviar(pedido: Encargos[T]): Promise<PedidoRecibido> {
     const limite = AbortSignal.timeout(TIEMPO_MAXIMO_MS);
     let respuesta: Response;
     try {

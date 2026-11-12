@@ -1,0 +1,239 @@
+---
+/**
+ * Dibujo de una vela personalizada: en recipiente (frasco), de molde (cupcake) o en
+ * jícara, con su topping y, si se pidió, vetas de marmoleado. Los colores salen de
+ * `--vela` y `--veta`, y el tamaño de `--escala`; `src/scripts/vela.ts` los cambia y
+ * marca con `data-activa` el tipo y el topping elegidos, y con `data-marmol` el marmoleado.
+ */
+import type { FiguraTopping } from '@/domain/kits';
+import type { TipoVela } from '@/domain/velas';
+import Toppings from './Toppings.astro';
+
+interface Props {
+  tipo: TipoVela;
+  vela: string;
+  topping: FiguraTopping;
+  /** Color de las vetas; sin él, la vela sale lisa. */
+  veta?: string;
+  /** 1 = tamaño mediano; las chicas y grandes se dibujan un poco más chicas o más grandes. */
+  escala?: number;
+  class?: string;
+  /** Texto para lectores de pantalla. Si se omite, el dibujo es decorativo. */
+  etiqueta?: string;
+}
+
+const { tipo, vela, topping, veta, escala = 1, class: clase, etiqueta } = Astro.props;
+const activa = (valor: TipoVela) => (valor === tipo ? '' : undefined);
+
+// Cada dibujo de la página necesita sus propios recortes.
+const uid = Math.random().toString(36).slice(2, 8);
+const recorte = (nombre: string) => `vela-${nombre}-${uid}`;
+
+/** Vetas del marmoleado: se recortan a la cera de cada tipo. */
+const vetas = [
+  'M84 128c26-14 44 26 72 10s40 6 60-6',
+  'M86 162c22-16 48 14 70 0s36 10 60-2',
+  'M90 188c24-8 40 6 62-2s32-6 54 0',
+  'M118 104c10 18 4 40 18 62s4 30 10 40',
+];
+---
+
+<svg
+  class:list={['vista-vela', clase]}
+  viewBox="0 0 300 230"
+  style={`--vela:${vela};--veta:${veta ?? vela};--escala:${escala}`}
+  role={etiqueta ? 'img' : undefined}
+  aria-label={etiqueta}
+  aria-hidden={etiqueta ? undefined : 'true'}
+  focusable="false"
+  data-marmol={veta ? '' : undefined}
+  data-vista-vela
+>
+  <defs>
+    <clipPath id={recorte('recipiente')}>
+      <rect x="103" y="114" width="94" height="80" rx="11" />
+    </clipPath>
+    <clipPath id={recorte('molde')}>
+      <path d="M104 146h92l-10 54h-72Z" />
+      <path d="M98 150c-2-32 22-52 52-52s54 20 52 52q-52 10-104 0Z" />
+    </clipPath>
+  </defs>
+
+  <ellipse cx="150" cy="204" rx="74" ry="9" class="vista-vela__sombra" />
+
+  <!-- En recipiente: frasco de vidrio -->
+  <g data-tipo="recipiente" data-activa={activa('recipiente')}>
+    <g class="vista-vela__pieza">
+      <rect x="96" y="86" width="108" height="114" rx="16" class="vista-vela__frasco" />
+      <rect x="103" y="118" width="94" height="76" rx="11" class="vista-vela__cera" />
+      <g clip-path={`url(#${recorte('recipiente')})`} class="vista-vela__vetas">
+        {vetas.map((d) => <path d={d} />)}
+      </g>
+      <ellipse cx="150" cy="120" rx="47" ry="8" class="vista-vela__cera vista-vela__cera-arriba" />
+      <rect x="107" y="96" width="7" height="62" rx="3.5" class="vista-vela__reflejo" />
+      <rect x="126" y="150" width="48" height="22" rx="4" class="vista-vela__etiqueta" />
+      <rect x="144" y="157" width="8" height="8" rx="1.6" fill="#3B2A9B" />
+      <rect x="154" y="155" width="5" height="5" rx="1" fill="#E4007C" />
+      <Toppings topping={topping} transform="translate(-100 0)" />
+      <path d="M150 120v-15" class="vista-vela__pabilo" />
+      <g transform="translate(-100 0)"><g class="vista-vela__flama"><path d="M250 70c11 14 13 23 0 33-13-10-11-19 0-33Z" fill="#F2A33A" /><path d="M250 84c5 7 6 11 0 16-6-5-5-9 0-16Z" fill="#FFE7A3" /></g></g>
+    </g>
+  </g>
+
+  <!-- De molde: tipo cupcake, sin recipiente -->
+  <g data-tipo="molde" data-activa={activa('molde')}>
+    <path d="M104 146h92l-10 54h-72Z" class="vista-vela__cera" />
+    <path d="M104 146h92l-10 54h-72Z" class="vista-vela__capacillo" />
+    <path d="M115 148l6 52M129 148l3 52M143 148l1 52M157 148l-1 52M171 148l-3 52M185 148l-6 52" class="vista-vela__estrias" />
+    <path d="M98 150c-2-32 22-52 52-52s54 20 52 52q-52 10-104 0Z" class="vista-vela__cera vista-vela__cera-arriba" />
+    <g clip-path={`url(#${recorte('molde')})`} class="vista-vela__vetas">
+      {vetas.map((d) => <path d={d} />)}
+    </g>
+    <path d="M108 140q42-16 84 0M120 121q30-12 60 0" class="vista-vela__crema" />
+    <Toppings topping={topping} transform="translate(150 114) scale(0.8) translate(-250 -117)" />
+    <path d="M150 100v-14" class="vista-vela__pabilo" />
+    <g transform="translate(-100 -19)"><g class="vista-vela__flama"><path d="M250 70c11 14 13 23 0 33-13-10-11-19 0-33Z" fill="#F2A33A" /><path d="M250 84c5 7 6 11 0 16-6-5-5-9 0-16Z" fill="#FFE7A3" /></g></g>
+  </g>
+
+  <!-- En jícara: media jícara natural sobre su aro -->
+  <g data-tipo="jicara" data-activa={activa('jicara')}>
+    <g class="vista-vela__pieza">
+      <ellipse cx="150" cy="197" rx="28" ry="6" class="vista-vela__aro" />
+      <path d="M80 132a70 64 0 0 0 140 0Z" class="vista-vela__jicara" />
+      <path d="M96 150q8 22 30 34M204 150q-8 22-30 34M150 170v26" class="vista-vela__vetas-jicara" />
+      <ellipse cx="150" cy="132" rx="70" ry="13" class="vista-vela__borde" />
+      <ellipse cx="150" cy="133" rx="63" ry="10" class="vista-vela__cera vista-vela__cera-arriba" />
+      <Toppings topping={topping} transform="translate(-100 15)" />
+      <path d="M150 133v-15" class="vista-vela__pabilo" />
+      <g transform="translate(-100 13)"><g class="vista-vela__flama"><path d="M250 70c11 14 13 23 0 33-13-10-11-19 0-33Z" fill="#F2A33A" /><path d="M250 84c5 7 6 11 0 16-6-5-5-9 0-16Z" fill="#FFE7A3" /></g></g>
+    </g>
+  </g>
+</svg>
+
+<style>
+  .vista-vela {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .vista-vela [data-tipo] {
+    display: none;
+  }
+
+  .vista-vela [data-tipo][data-activa] {
+    display: inline;
+  }
+
+  /* Tamaño: pequeña, mediana o grande, apoyada siempre en el mismo piso. */
+  .vista-vela__pieza {
+    transform: scale(var(--escala, 1));
+    transform-origin: 150px 200px;
+    transition: transform var(--duracion-media) var(--curva-salida);
+  }
+
+  .vista-vela__sombra {
+    fill: rgb(23 20 43 / 0.08);
+  }
+
+  .vista-vela__frasco {
+    fill: rgb(255 255 255 / 0.6);
+    stroke: rgb(23 20 43 / 0.22);
+    stroke-width: 2;
+  }
+
+  .vista-vela__cera {
+    fill: var(--vela);
+    stroke: rgb(23 20 43 / 0.12);
+    stroke-width: 1.5;
+    transition: fill var(--duracion-media);
+  }
+
+  .vista-vela__cera-arriba {
+    filter: brightness(1.08);
+  }
+
+  .vista-vela__vetas {
+    display: none;
+    fill: none;
+    stroke: var(--veta);
+    stroke-width: 6;
+    stroke-linecap: round;
+    opacity: 0.9;
+    transition: stroke var(--duracion-media);
+  }
+
+  .vista-vela[data-marmol] .vista-vela__vetas {
+    display: inline;
+  }
+
+  .vista-vela__reflejo {
+    fill: rgb(255 255 255 / 0.7);
+  }
+
+  .vista-vela__etiqueta {
+    fill: var(--color-papel);
+    stroke: rgb(23 20 43 / 0.15);
+  }
+
+  /* Cupcake: la base lleva estrías, como un capacillo, y la parte de arriba es la "crema". */
+  .vista-vela__capacillo {
+    fill: rgb(23 20 43 / 0.1);
+  }
+
+  .vista-vela__estrias {
+    stroke: rgb(23 20 43 / 0.16);
+    stroke-width: 2;
+  }
+
+  .vista-vela__crema {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.5);
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .vista-vela__jicara {
+    fill: #8a5a3b;
+    stroke: #5e3a22;
+    stroke-width: 2;
+  }
+
+  .vista-vela__vetas-jicara {
+    fill: none;
+    stroke: rgb(23 20 43 / 0.2);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .vista-vela__borde {
+    fill: #6b4128;
+  }
+
+  .vista-vela__aro {
+    fill: #5e3a22;
+  }
+
+  .vista-vela__pabilo {
+    stroke: var(--color-tinta);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .vista-vela__flama {
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+      animation: flama-vela 1.6s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes flama-vela {
+    from {
+      transform: scale(1, 1) rotate(-2deg);
+    }
+    to {
+      transform: scale(0.94, 1.06) rotate(2deg);
+    }
+  }
+</style>

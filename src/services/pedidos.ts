@@ -11,6 +11,7 @@
 import { sitio } from '@/config/sitio';
 import type { Linea } from '@/config/rutas';
 import type { PedidoKit } from '@/domain/kits';
+import { NOMBRES_TIPO_VELA, type PedidoVela } from '@/domain/velas';
 
 interface PedidoProducto {
   nombre: string;
@@ -29,6 +30,8 @@ export interface CanalPedidos {
   mayoreo(): string;
   /** Mandar (o completar) un pedido de kit navideño; `folio` es el id que regresó la API. */
   kit(pedido: PedidoKit, folio?: number): string;
+  /** Mandar (o completar) un pedido de vela personalizada; `folio` es el id que regresó la API. */
+  vela(pedido: PedidoVela, folio?: number): string;
   /** Contacto general (encabezado, botón flotante, pie de página), según la página. */
   general(linea?: Linea): string;
 }
@@ -37,6 +40,7 @@ const SALUDO: Record<Linea, string> = {
   inicio: 'Hola, vi su página y me gustaría hacer un pedido.',
   aretes: 'Hola, vi su página y me interesan sus aretes.',
   kits: 'Hola, vi su página y me interesan los kits navideños.',
+  velas: 'Hola, vi su página y me interesan sus velas personalizadas.',
 };
 
 class CanalWhatsApp implements CanalPedidos {
@@ -75,6 +79,21 @@ class CanalWhatsApp implements CanalPedidos {
       `• 2 jabones: ${p.jabonColor.toLowerCase()}, aroma ${p.jabonAroma.toLowerCase()}, forma ${p.jabonForma.toLowerCase()}`,
       `• 1 vela: ${p.velaColor.toLowerCase()}, aroma ${p.velaAroma.toLowerCase()}, ${p.velaTopping.toLowerCase()}`,
       '• 1 nacimiento pequeño',
+      `A nombre de ${p.clienteNombre} (${p.clienteContacto}). ¿Me pasan el precio?`,
+    ];
+    return this.#enlace(lineas.join('\n'));
+  }
+
+  vela(p: PedidoVela, folio?: number) {
+    const cuantas = p.cantidad === 1 ? 'una vela' : `${p.cantidad} velas iguales`;
+    const marmol = p.marmoleado && p.colorMarmoleado ? `, marmoleada con ${p.colorMarmoleado.toLowerCase()}` : '';
+    const lineas = [
+      folio ? `Hola, acabo de mandar el pedido de vela #${folio}:` : `Hola, quiero pedir ${cuantas}:`,
+      `• ${NOMBRES_TIPO_VELA[p.tipo]}, ${p.presentacion.toLowerCase()}`,
+      `• Color ${p.color.toLowerCase()}${marmol}`,
+      `• Aroma ${p.aroma.toLowerCase()}, ${p.topping.toLowerCase()}`,
+      ...(folio && p.cantidad > 1 ? [`• ${p.cantidad} piezas`] : []),
+      ...(p.notas ? [`Notas: ${p.notas}`] : []),
       `A nombre de ${p.clienteNombre} (${p.clienteContacto}). ¿Me pasan el precio?`,
     ];
     return this.#enlace(lineas.join('\n'));

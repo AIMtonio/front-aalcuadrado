@@ -5,7 +5,7 @@
  */
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
-import type { FotoGaleria, Producto } from '@/domain/catalogo';
+import type { CategoriaFotoVela, FotoGaleria, Producto } from '@/domain/catalogo';
 import { formatearPrecio } from '@/services/pedidos';
 
 interface FotoVisor {
@@ -19,7 +19,7 @@ interface FotoVisor {
 }
 
 export interface ElementoVisor {
-  /** Lo que aparece en la URL: `producto/<slug>`, `galeria` o `kits`. */
+  /** Lo que aparece en la URL: `producto/<slug>`, `galeria`, `kits` o `velas-<tipo>`. */
   clave: string;
   titulo: string;
   precio?: string;
@@ -58,10 +58,10 @@ export async function elementoDeProducto(producto: Producto<ImageMetadata>): Pro
   };
 }
 
-/** Fotos sueltas, sin producto: la galería de aretes (`galeria`) o la de kits (`kits`). */
+/** Fotos sueltas, sin producto: la galería de aretes (`galeria`), la de kits (`kits`) o la de un tipo de vela. */
 export async function elementoDeGaleria(
   fotos: FotoGaleria<ImageMetadata>[],
-  clave: 'galeria' | 'kits',
+  clave: 'galeria' | 'kits' | CategoriaFotoVela,
   titulo: string,
 ): Promise<ElementoVisor> {
   return {

@@ -32,12 +32,19 @@ const enlacesPorLinea: Record<Linea, Enlace[]> = {
     { href: '#arma-tu-kit', texto: 'Arma tu kit' },
     { href: '#preguntas', texto: 'Preguntas' },
   ],
+  velas: [
+    { href: '#como-funciona', texto: 'Cómo funciona' },
+    { href: '#arma-tu-vela', texto: 'Arma tu vela' },
+    { href: '#preguntas', texto: 'Preguntas' },
+  ],
 };
 const enlaces = enlacesPorLinea[linea];
 
+// `corto` es lo que se lee en celulares, donde no caben los nombres completos.
 const pestanas = [
-  { linea: 'aretes', href: rutas.aretes, texto: 'Aretes', icono: 'arete' },
-  { linea: 'kits', href: rutas.kits, texto: sitio.kits.nombre, icono: 'vela' },
+  { linea: 'aretes', href: rutas.aretes, texto: 'Aretes', corto: 'Aretes', icono: 'arete' },
+  { linea: 'kits', href: rutas.kits, texto: sitio.kits.nombre, corto: 'Kits', icono: 'regalo' },
+  { linea: 'velas', href: rutas.velas, texto: 'Velas', corto: 'Velas', icono: 'vela' },
 ] as const;
 ---
 
@@ -91,9 +98,23 @@ const pestanas = [
         {
           pestanas.map((p) => (
             <li>
-              <a class="pestana" href={p.href} aria-current={p.linea === linea ? 'page' : undefined}>
+              <a
+                class="pestana"
+                href={p.href}
+                aria-current={p.linea === linea ? 'page' : undefined}
+                data-linea={p.linea}
+              >
                 <Icono nombre={p.icono} />
-                {p.texto}
+                {p.texto === p.corto ? (
+                  p.texto
+                ) : (
+                  <>
+                    <span class="pestana__largo">{p.texto}</span>
+                    <span class="pestana__corto" aria-hidden="true">
+                      {p.corto}
+                    </span>
+                  </>
+                )}
               </a>
             </li>
           ))
@@ -156,7 +177,7 @@ const pestanas = [
     color: var(--color-morado);
   }
 
-  /* ---------- Pestañas: Aretes · Kits navideños ---------- */
+  /* ---------- Pestañas: Aretes · Kits navideños · Velas ---------- */
 
   .pestanas {
     border-top: 1px solid var(--color-borde);
@@ -214,8 +235,36 @@ const pestanas = [
     color: var(--color-blanco);
   }
 
-  .pestanas li:last-child .pestana[aria-current='page'] {
+  .pestana[data-linea='kits'][aria-current='page'] {
     background: var(--color-pino);
+  }
+
+  .pestana[data-linea='velas'][aria-current='page'] {
+    background: var(--color-cera);
+  }
+
+  /* Celulares chicos: nombres cortos y sin "Quiero ver" para que quepan las tres. */
+  .pestana__corto {
+    display: none;
+  }
+
+  @media (max-width: 29.99rem) {
+    .pestana {
+      padding-inline: 0.75rem;
+    }
+
+    .pestana__largo {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .pestana__corto {
+      display: inline;
+    }
   }
 
   @media (min-width: 30rem) {

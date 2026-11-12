@@ -1,6 +1,6 @@
 # Manual de operación
 
-Guía del día a día para quien administra **aalcuadrado**: correr el sitio en local, agregar productos y fotos, cambiar precios y opciones de los kits, y publicar. La visión general del sistema está en el [README](../README.md) y las decisiones técnicas en [arquitectura.md](arquitectura.md).
+Guía del día a día para quien administra **aalcuadrado**: correr el sitio en local, agregar productos y fotos, cambiar precios y opciones de los kits y las velas, y publicar. La visión general del sistema está en el [README](../README.md) y las decisiones técnicas en [arquitectura.md](arquitectura.md).
 
 ---
 
@@ -157,7 +157,7 @@ whatsapp: {
 
 Escríbelo **con lada de país y sin espacios, signos ni guiones**. Para un celular de México: `52` + los 10 dígitos.
 
-En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de mayoreo, las opciones de los kits y las preguntas frecuentes (`preguntas.aretes` y `preguntas.kits`, una lista por página).
+En el mismo archivo están las redes sociales (ocultas por ahora), el mínimo de mayoreo, las opciones de los kits y las velas, y las preguntas frecuentes (`preguntas.aretes`, `preguntas.kits` y `preguntas.velas`, una lista por página).
 
 ### Kits navideños ("Arma tu kit")
 
@@ -168,7 +168,7 @@ No tienen catálogo: quien visita arma su kit en `/kits-navidenos/` y la API gua
 | Opción | Dónde se cambia |
 | --- | --- |
 | Colores y aromas del jabón y de la vela | Pestaña **Kits** del panel de la API. Solo salen los marcados como disponibles, cada uno en la pieza que le marques (jabón, vela o ambos). Hay que volver a publicar el sitio. |
-| Formas del jabón y toppings de la vela | `sitio.kits` en `src/config/sitio.ts`, porque cada uno tiene su dibujo en la vista previa. |
+| Formas del jabón y toppings de la vela | `sitio.kits.jabon.formas` y `TOPPINGS` en `src/config/sitio.ts`, porque cada uno tiene su dibujo en la vista previa. Los toppings son los mismos para las velas individuales. |
 | Fotos de "Así quedan" | Pestaña **Kits** del panel (fotos de categoría `kits`). Sin fotos, la sección no sale. |
 
 Si el panel no tiene ningún color o aroma disponible para una pieza (o la API todavía no tiene el módulo de kits), se usan los de `sitio.kits` y el build lo avisa.
@@ -179,11 +179,11 @@ kits: {
     formas: [{ nombre: 'Copo de nieve', figura: 'copo' }, …],
     // figura: copo, arbol, santa, jengibre, regalo, estrella, cuadrado, ovalo u ovalo-cavidad
   },
-  vela: {
-    toppings: [{ nombre: 'Canela en raja', figura: 'canela' }, …],
-    // figura: naranja, canela, anis, flores, rosas, manzanilla, cafe, piedras o ninguno
-  },
 },
+
+// Arriba del mismo archivo, compartido con las velas:
+const TOPPINGS = [{ nombre: 'Canela en raja', figura: 'canela' }, …];
+// figura: naranja, canela, anis, flores, rosas, manzanilla, cafe, piedras o ninguno
 ```
 
 `figura` solo decide el dibujo de la vista previa; el nombre es lo que le llega al panel.
@@ -192,6 +192,20 @@ kits: {
 - **Sin `API_URL`**, el botón dice "Pedir por WhatsApp" y abre el chat con el pedido ya escrito.
 
 Las reglas (campos obligatorios, largo máximo, correo o teléfono válido) están en `src/domain/kits.ts` y son las mismas que valida la API.
+
+### Velas personalizadas ("Arma tu vela")
+
+Velas individuales en `/velas/`. Quien visita elige **tipo** (en recipiente, de molde o en jícara), **tamaño o molde**, **color**, **aroma**, **topping**, si la quiere **marmoleada** (con un segundo color), **cuántas iguales** (hasta 20) y unas **notas**. El pedido llega a la pestaña **Pedidos** del panel (`POST /api/velas/pedidos`). De dónde sale cada opción:
+
+| Opción | Dónde se cambia |
+| --- | --- |
+| Tamaños y moldes, sus gramos y si se pueden marmolear | Pestaña **Velas** del panel. Solo salen los disponibles; los gramos se muestran cuando los captures ("Mediana · 180 g"). Un tipo sin tamaños disponibles no aparece. |
+| Colores y aromas | Los de la pestaña **Kits** marcados para la **vela**. |
+| Toppings | `TOPPINGS` en `src/config/sitio.ts` (los mismos de los kits). |
+| Fotos de cada tipo | Pestaña **Velas** del panel (categorías `velas-recipiente`, `velas-molde`, `velas-jicara`). Ilustran la tarjeta del tipo, la vista previa y la sección "Así se ven". |
+| Textos de cada tipo, tiempo de entrega y preguntas | `sitio.velas` y `preguntas.velas` en `src/config/sitio.ts`. |
+
+En jícara el marmoleado nunca se ofrece, aunque el panel lo permitiera. Si la API todavía no tiene el módulo de velas, se usan los tamaños de `sitio.velas.presentaciones` (los mismos que carga el back de inicio, con los gramos pendientes). Las reglas están en `src/domain/velas.ts`.
 
 ### Categorías de aretes
 
@@ -242,16 +256,16 @@ src/
     galeria.json             ← fotos de ambiente y su descripción
     fotos/productos/         ← fotos de los productos
     fotos/galeria/           ← fotos de ambiente
-  config/sitio.ts            ← WhatsApp, redes, temporada, precios, opciones de kits, preguntas
-  config/rutas.ts            ← direcciones de las páginas (/, /aretes/, /kits-navidenos/)
-  domain/                    ← tipos y reglas de los datos (esquemas Zod, pedido de kit)
+  config/sitio.ts            ← WhatsApp, redes, temporada, precios, opciones de kits y velas, preguntas
+  config/rutas.ts            ← direcciones de las páginas (/, /aretes/, /kits-navidenos/, /velas/)
+  domain/                    ← tipos y reglas de los datos (esquemas Zod, pedidos de kit y de vela)
   data/                      ← lectura del catálogo (JSON del repositorio y de la API)
   services/pedidos.ts        ← arma los enlaces de WhatsApp
   services/disenos.ts        ← cliente del diseñador con IA (/api/disenos)
-  services/kits.ts           ← cliente de pedidos de kits (/api/pedidos)
-  pages/                     ← portada, aretes/ y kits-navidenos/
-  components/                ← secciones (inicio/, catalogo/, kits/, visor/ y las comunes)
-  scripts/                   ← interactividad (visor, tarjetas, colores, diseñador, kit)
+  services/encargos.ts       ← cliente de pedidos de kits y velas (/api/pedidos, /api/velas/pedidos)
+  pages/                     ← portada, aretes/, kits-navidenos/ y velas/
+  components/                ← secciones (inicio/, catalogo/, kits/, velas/, visor/ y las comunes)
+  scripts/                   ← interactividad (visor, tarjetas, colores, diseñador, kit, vela)
   styles/                    ← colores, tipografía y estilos base
 scripts/                     ← validar productos, generar ejemplos e imagen OG
 docs/                        ← arquitectura, decisiones (adr/) y este manual

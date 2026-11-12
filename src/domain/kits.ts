@@ -5,6 +5,7 @@
  * antes de mandarlo para mostrar los errores junto a cada campo. Puro (sin APIs del
  * navegador) para poder usarlo desde Node.
  */
+import { MENSAJE_CONTACTO, esContacto, limpiar } from './contacto.ts';
 
 /** Dibujos de la vista previa. Las opciones de `sitio.kits` eligen uno. */
 export const FIGURAS_JABON = [
@@ -20,7 +21,7 @@ export const FIGURAS_JABON = [
 ] as const;
 export type FiguraJabon = (typeof FIGURAS_JABON)[number];
 
-export const FIGURAS_TOPPING = [
+const FIGURAS_TOPPING = [
   'naranja',
   'canela',
   'anis',
@@ -78,16 +79,6 @@ const FALTA: Record<CampoKit, string> = {
 
 export const CAMPOS_KIT = Object.keys(FALTA) as CampoKit[];
 
-const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-/** Dígitos con algo de formato (espacios, +, (), -), de 7 a 20 caracteres. */
-const REGEX_TELEFONO = /^\+?[\d\s()-]{7,20}$/;
-
-/** Un correo o un teléfono, con la misma regla que la API. */
-function esContacto(texto: string): boolean {
-  const limpio = texto.trim();
-  return REGEX_CORREO.test(limpio) || (REGEX_TELEFONO.test(limpio) && limpio.replace(/\D/g, '').length >= 7);
-}
-
 export type RevisionPedido =
   { valido: true; pedido: PedidoKit } | { valido: false; errores: Partial<Record<CampoKit, string>> };
 
@@ -97,13 +88,13 @@ export function revisarPedido(datos: Partial<Record<CampoKit, unknown>>): Revisi
   const errores: Partial<Record<CampoKit, string>> = {};
 
   for (const campo of CAMPOS_KIT) {
-    const valor = typeof datos[campo] === 'string' ? datos[campo].replace(/\s+/g, ' ').trim() : '';
+    const valor = limpiar(datos[campo]);
     pedido[campo] = valor;
     if (!valor) errores[campo] = FALTA[campo];
     else if (valor.length > MAXIMOS[campo]) errores[campo] = `Usa como máximo ${MAXIMOS[campo]} caracteres.`;
   }
   if (!errores.clienteContacto && !esContacto(pedido.clienteContacto)) {
-    errores.clienteContacto = 'Escribe un correo (ana@correo.com) o un teléfono de al menos 7 dígitos.';
+    errores.clienteContacto = MENSAJE_CONTACTO;
   }
 
   return Object.keys(errores).length > 0 ? { valido: false, errores } : { valido: true, pedido };

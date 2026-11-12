@@ -2,7 +2,8 @@
  * Tokens de la marca aalcuadrado.
  * Cambia un color aquí y se actualiza en todo el sitio.
  * Los fondos son cálidos (papel y crema) porque todo es hecho a mano;
- * morado y rosa siguen siendo la marca, y pino, rojo y dorado son de los kits navideños.
+ * morado y rosa siguen siendo la marca; pino, rojo y dorado son de los kits navideños,
+ * y cera (terracota) es de las velas personalizadas.
  */
 :root {
   /* Paleta */
@@ -15,6 +16,9 @@
   --color-pino-oscuro: #164a2e;
   --color-rojo: #b3202a;
   --color-dorado: #c9a227;
+  --color-cera: #9a4a1c; /* terracota: contraste AA con texto blanco */
+  --color-cera-oscuro: #7a3814;
+  --color-cera-suave: #f6e6d8;
   --color-tinta: #17142b;
   --color-lavanda: #5c5878;
   --color-blanco: #ffffff;
@@ -64,6 +68,6 @@
   --duracion-media: 280ms;
 
   --altura-encabezado: 4rem;
-  --altura-pestanas: 3.25rem; /* fila de "Aretes · Kits navideños" bajo el encabezado */
+  --altura-pestanas: 3.25rem; /* fila de "Aretes · Kits navideños · Velas" bajo el encabezado */
   --foco: 0 0 0 3px var(--color-blanco), 0 0 0 5px var(--color-morado);
 }

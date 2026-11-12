@@ -8,7 +8,7 @@ Sitio público de **aalcuadrado** (se lee "A al cuadrado"), un taller de manuali
 | **Estilo** | Sitio estático generado al compilar (SSG), con islas de TypeScript en el navegador |
 | **Stack** | Astro 7 · TypeScript estricto · Zod · Sharp · CSS propio (sin frameworks de UI) |
 | **Hospedaje** | Vercel (CDN) · la API vive en un servidor propio detrás de Cloudflare Tunnel |
-| **Líneas de producto** | Aretes impresos en 3D (catálogo) · Kits navideños de vela + jabones (pedido a la medida) |
+| **Líneas de producto** | Aretes impresos en 3D (catálogo) · Kits navideños de vela + jabones y velas personalizadas (pedidos a la medida) |
 
 > ¿Buscas cómo agregar un producto, cambiar un precio o publicar? Eso está en el **[Manual de operación](docs/operacion.md)**. Este README describe el sistema.
 
@@ -21,7 +21,7 @@ Sitio público de **aalcuadrado** (se lee "A al cuadrado"), un taller de manuali
 3. [Contenedores y despliegue](#3-contenedores-y-despliegue)
 4. [Arquitectura del front](#4-arquitectura-del-front)
 5. [Flujo de publicación](#5-flujo-de-publicación)
-6. [Flujo de un pedido de kit](#6-flujo-de-un-pedido-de-kit)
+6. [Flujo de un pedido a la medida](#6-flujo-de-un-pedido-a-la-medida)
 7. [Mapa del sitio](#7-mapa-del-sitio)
 8. [Atributos de calidad](#8-atributos-de-calidad)
 9. [Decisiones de arquitectura](#9-decisiones-de-arquitectura)
@@ -33,7 +33,7 @@ Sitio público de **aalcuadrado** (se lee "A al cuadrado"), un taller de manuali
 
 ## 1. Principios
 
-1. **Estático primero.** Todo lo que se puede decidir al compilar se decide al compilar: catálogo, fotos optimizadas, opciones de los kits. El navegador solo llama a la API para lo que de verdad ocurre en vivo (mandar un pedido, generar un diseño).
+1. **Estático primero.** Todo lo que se puede decidir al compilar se decide al compilar: catálogo, fotos optimizadas, opciones de los kits y las velas. El navegador solo llama a la API para lo que de verdad ocurre en vivo (mandar un pedido, generar un diseño).
 2. **El sitio no se cae si la API se cae.** La API alimenta el *build*, no las visitas. Si está apagada, el sitio publicado sigue funcionando y los pedidos se desvían a WhatsApp.
 3. **Un contrato, dos lados.** Los esquemas Zod de `src/domain/` repiten las reglas de los DTO del back. El front valida antes de mandar y el back valida al recibir.
 4. **Puertos y adaptadores ligeros.** Páginas y componentes hablan con interfaces (`CatalogoRepository`, `CanalPedidos`), nunca con archivos, `fetch` o WhatsApp directamente.
@@ -82,9 +82,9 @@ flowchart LR
 
 | Actor / sistema | Rol |
 | --- | --- |
-| Visitante | Ve el catálogo de aretes, arma kits navideños y pide por WhatsApp o por formulario. |
-| Dueño del taller | Administra productos, categorías, colores, aromas y fotos en el panel; cotiza los pedidos de kits. |
-| WhatsApp | Canal de venta principal (aretes) y respaldo de los pedidos de kits. |
+| Visitante | Ve el catálogo de aretes, arma kits navideños o velas y pide por WhatsApp o por formulario. |
+| Dueño del taller | Administra productos, categorías, colores, aromas, tamaños de velas y fotos en el panel; cotiza los pedidos de kits y velas. |
+| WhatsApp | Canal de venta principal (aretes) y respaldo de los pedidos de kits y velas. |
 | OpenAI Images | Lo usa solo la API, para el diseñador de aretes. La llave nunca llega al navegador. |
 | GitHub + Pages CMS | Código fuente y un catálogo de respaldo en JSON, editable desde el navegador. |
 
@@ -110,7 +110,7 @@ flowchart TB
     tunel["Cloudflare Tunnel<br/>HTTPS público"]
     nest["API NestJS<br/>/api/*  ·  /panel/  ·  /uploads/"]
     db[("MariaDB<br/>productos, categorías,<br/>opciones de kit, pedidos")]
-    disco[("Disco<br/>UPLOADS_DIR/<br/>productos · galeria · kits")]
+    disco[("Disco<br/>UPLOADS_DIR/<br/>productos · galeria · kits · velas-*")]
   end
 
   repo[("GitHub<br/>front-aalcuadrado")]
@@ -137,7 +137,7 @@ flowchart TB
 
 | Contenedor | Tecnología | Responsabilidad | Escala / costo |
 | --- | --- | --- | --- |
-| Sitio estático | Astro, HTML, CSS, TS | Presentar el catálogo y los kits; validar y mandar pedidos | CDN global, plan gratuito |
+| Sitio estático | Astro, HTML, CSS, TS | Presentar el catálogo, los kits y las velas; validar y mandar pedidos | CDN global, plan gratuito |
 | Build | Node 22+, `scripts/*.mjs`, Sharp | Sincronizar la API, validar contenido y optimizar imágenes | 1 build por cambio, segundos |
 | API | NestJS, TypeORM, JWT | Catálogo, fotos, opciones de kit, pedidos, diseñador | Una instancia, límites por IP |
 | Base de datos | MariaDB / MySQL | Estado del negocio | Una instancia |
@@ -152,14 +152,14 @@ Capas dentro de este repositorio. Las flechas indican dependencia: una capa solo
 ```mermaid
 flowchart TB
   subgraph presentacion["Presentación · src/pages · src/components · src/scripts"]
-    paginas["Páginas<br/>/ · /aretes/ · /kits-navidenos/"]
+    paginas["Páginas<br/>/ · /aretes/ · /kits-navidenos/ · /velas/"]
     componentes["Componentes .astro<br/>Hero, Catálogo, ArmaTuKit, Visor…"]
     scripts["Islas del navegador<br/>tarjetas.ts · visor.ts · kit.ts · disenador.ts"]
   end
 
   subgraph servicios["Servicios · src/services"]
     canal["CanalPedidos<br/>enlaces de WhatsApp"]
-    clientes["ClienteKits · ClienteDisenos<br/>fetch a la API pública"]
+    clientes["ClienteEncargos · ClienteDisenos<br/>fetch a la API pública"]
   end
 
   subgraph datos["Datos · src/data"]
@@ -168,7 +168,7 @@ flowchart TB
   end
 
   subgraph dominio["Dominio · src/domain"]
-    zod["Esquemas Zod y reglas puras<br/>catálogo · kits · diseños"]
+    zod["Esquemas Zod y reglas puras<br/>catálogo · kits · velas · diseños"]
   end
 
   config["Configuración · src/config<br/>sitio.ts · rutas.ts"]
@@ -234,15 +234,15 @@ flowchart LR
   class falla error
 ```
 
-- **Tolerante a versiones de la API.** Si una ruta nueva todavía no existe (responde `404`, por ejemplo `/api/categorias` o `/api/kits/colores`), la sincronización sigue sin esos datos y el sitio usa sus valores de respaldo.
+- **Tolerante a versiones de la API.** Si una ruta nueva todavía no existe (responde `404`, por ejemplo `/api/categorias`, `/api/kits/colores` o `/api/velas/presentaciones`), la sincronización sigue sin esos datos y el sitio usa sus valores de respaldo.
 - **Atómico.** Vercel solo cambia de versión si el build completo termina bien; nunca se publica un sitio a medias.
-- **Sin API** (`API_URL` vacío), el sitio se arma con los JSON del repositorio y los pedidos de kits van por WhatsApp.
+- **Sin API** (`API_URL` vacío), el sitio se arma con los JSON del repositorio y los pedidos de kits y velas van por WhatsApp.
 
 ---
 
-## 6. Flujo de un pedido de kit
+## 6. Flujo de un pedido a la medida
 
-El único flujo que escribe datos desde el sitio público.
+El único flujo que escribe datos desde el sitio público. El diagrama muestra un kit; una vela personalizada sigue exactamente el mismo camino con `vela.ts`, `revisarPedidoVela`, `POST /api/velas/pedidos` y la tabla `pedidos_velas`.
 
 ```mermaid
 sequenceDiagram
@@ -306,22 +306,29 @@ flowchart LR
   inicio["/ · Portada<br/>¿Qué quieres ver?"]
   aretes["/aretes/<br/>Catálogo · Galería · Proceso ·<br/>Personaliza · Diseñador · Mayoreo · FAQ"]
   kits["/kits-navidenos/<br/>Así quedan · Cómo funciona ·<br/>Arma tu kit · FAQ"]
-  visor(["Visor de fotos<br/>#producto/slug/n · #galeria/n · #kits/n"])
+  velas["/velas/<br/>Así se ven · Cómo funciona ·<br/>Arma tu vela · FAQ"]
+  visor(["Visor de fotos<br/>#producto/slug/n · #galeria/n · #kits/n · #velas-tipo/n"])
   wa(["WhatsApp"])
 
   inicio -- "tarjeta / pestaña" --> aretes
   inicio -- "tarjeta / pestaña" --> kits
+  inicio -- "tarjeta / pestaña" --> velas
   aretes <-- "pestañas del encabezado" --> kits
+  kits <-- "pestañas" --> velas
   aretes --> visor
   kits --> visor
+  velas --> visor
   aretes --> wa
   kits --> wa
+  velas --> wa
   inicio -. "enlaces viejos /#producto/… redirigen" .-> aretes
 
   classDef pagina fill:#fffcf7,stroke:#3b2a9b,color:#17142b
   classDef kit fill:#e3efe7,stroke:#1f5e3b,color:#17142b
   class inicio,aretes pagina
+  classDef vela fill:#f6e6d8,stroke:#9a4a1c,color:#17142b
   class kits kit
+  class velas vela
 ```
 
 ---
@@ -352,6 +359,7 @@ Cada decisión importante tiene su registro (ADR) con contexto, alternativas y c
 | [0003](docs/adr/0003-ventas-por-whatsapp-detras-de-una-interfaz.md) | Las ventas se cierran por WhatsApp, detrás de una interfaz | Aceptada |
 | [0004](docs/adr/0004-kits-como-pedido-a-la-medida.md) | Los kits son un pedido a la medida, no productos del catálogo | Aceptada |
 | [0005](docs/adr/0005-una-pagina-por-linea-de-producto.md) | Una página por línea de producto | Aceptada |
+| [0006](docs/adr/0006-velas-personalizadas-como-pedido-a-la-medida.md) | Las velas personalizadas siguen el modelo de pedido a la medida | Aceptada |
 
 ---
 
@@ -363,6 +371,7 @@ Cada decisión importante tiene su registro (ADR) con contexto, alternativas y c
 | Los cambios del panel no se ven hasta volver a publicar | Contenido desactualizado si nadie presiona "Publicar sitio" | Deploy Hook desde el panel. Siguiente paso: publicar automáticamente al guardar. |
 | `API_URL` queda escrita en la página | Cualquiera puede llamar a las rutas públicas | Solo se exponen rutas sin datos sensibles, con límite por IP y validación en la API. |
 | El filtro de palabras del diseñador corre en el navegador | Se puede saltar llamando a la API directo | La API limita a 10 diseños por minuto por IP y rechaza (422) lo que bloquea la moderación de OpenAI; el filtro del front solo ahorra imágenes. |
+| Los gramos de cada tamaño de vela están pendientes | El cliente elige "Mediana" sin saber cuánto pesa | El sitio los muestra en cuanto se capturan en el panel ("Mediana · 180 g"). Siguiente paso: capturarlos y volver a publicar. |
 | Los dos jabones de un kit comparten forma, color y aroma | El cliente no puede pedir dos jabones distintos | Requiere ampliar `pedidos_kits` en el back y el formulario. |
 | Precios de aretes fijos en `sitio.ts` | El precio de cada producto en la API se ignora | Mover el precio al panel cuando haya precios distintos por modelo. |
 
@@ -391,10 +400,10 @@ Estructura:
 
 ```
 src/
-  pages/        rutas: index, aretes/, kits-navidenos/
-  components/   secciones por página (inicio/, catalogo/, kits/, visor/) y comunes
+  pages/        rutas: index, aretes/, kits-navidenos/, velas/
+  components/   secciones por página (inicio/, catalogo/, kits/, velas/, visor/) y comunes
   scripts/      islas del navegador
-  services/     CanalPedidos, ClienteKits, ClienteDisenos
+  services/     CanalPedidos, ClienteEncargos, ClienteDisenos
   data/         CatalogoRepository y su implementación
   domain/       esquemas Zod y reglas puras
   config/       sitio.ts (negocio) y rutas.ts
@@ -412,5 +421,5 @@ docs/           arquitectura, ADR y manual de operación
 | --- | --- |
 | [docs/arquitectura.md](docs/arquitectura.md) | Desarrolladores: detalle de cada capa, integración con la API y cómo evolucionar. |
 | [docs/adr/](docs/adr/) | Arquitectura: por qué el sistema es como es. |
-| [docs/operacion.md](docs/operacion.md) | Quien administra el sitio: productos, fotos, precios, kits y publicación. |
+| [docs/operacion.md](docs/operacion.md) | Quien administra el sitio: productos, fotos, precios, kits, velas y publicación. |
 | [back-aalcuadrado](https://github.com/AIMtonio/back-aalcuadrado) · `docs/integracion-front.md` | Contrato completo de la API. |

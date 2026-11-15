@@ -11,7 +11,8 @@ export default defineConfig({
   site,
   output: 'static',
   trailingSlash: 'ignore',
-  integrations: [sitemap()],
+  // La calculadora de insumos es privada: no sale en el sitemap (src/pages/calculadora.astro).
+  integrations: [sitemap({ filter: (pagina) => !new URL(pagina).pathname.startsWith('/calculadora') })],
   env: {
     schema: {
       // URL pública de la API (la misma que usa `npm run api:sincronizar`). El diseñador

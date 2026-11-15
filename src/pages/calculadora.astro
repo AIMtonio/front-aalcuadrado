@@ -1,0 +1,337 @@
+---
+/**
+ * Calculadora de insumos para velas. Página privada: no tiene enlaces desde el sitio,
+ * no sale en el sitemap (ver `astro.config.mjs`), pide a los buscadores no indexarla y
+ * no carga Analytics. Se entra escribiendo la dirección: /calculadora/
+ */
+import { Font } from 'astro:assets';
+import '@/styles/global.css';
+import { sitio } from '@/config/sitio';
+import { FACTOR_CERA, PORCENTAJE_ESENCIA } from '@/domain/calculadora';
+
+import Icono from '@/components/Icono.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+
+/**
+ * Temperaturas de trabajo en °C: lo investigado por el dueño, lo que dicen los
+ * proveedores (fichas de Golden Brands 464 y pruebas de CandleScience con parafina para
+ * contenedor; noviembre 2026) y el promedio redondeado de ambos rangos.
+ */
+const temperaturas = [
+  {
+    cera: 'Soya de bajo punto de fusión',
+    etapas: [
+      { etapa: 'Derretir', tuyo: '70–75', internet: '82–85', promedio: 78 },
+      { etapa: 'Agregar fragancia', tuyo: '60–65', internet: '65–85', promedio: 69 },
+      { etapa: 'Verter', tuyo: '50–55', internet: '52–63', promedio: 55 },
+    ],
+  },
+  {
+    cera: 'Parafina para contenedor',
+    etapas: [
+      { etapa: 'Derretir', tuyo: '80–85', internet: '85', promedio: 84 },
+      { etapa: 'Agregar fragancia', tuyo: '70–75', internet: '85', promedio: 79 },
+      { etapa: 'Verter', tuyo: '65–70', internet: '71–77', promedio: 71 },
+    ],
+  },
+];
+---
+
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Calculadora · {sitio.nombre}</title>
+    <meta name="theme-color" content="#9a4a1c" />
+    <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+    <Font cssVariable="--fuente-titulos" preload={[{ weight: '700' }]} />
+    <Font cssVariable="--fuente-texto" preload={[{ weight: '400' }]} />
+  </head>
+  <body>
+    <main class="calc contenedor">
+      <h1 class="calc__titulo">Calculadora de insumos</h1>
+      <p class="texto-secundario">Pon los gramos de agua que le caben al molde o al recipiente.</p>
+
+      <form class="calc__form" data-calculadora>
+        <label class="calc__campo">
+          <span>Agua que le entra al molde</span>
+          <span class="calc__entrada">
+            <input name="agua" type="number" inputmode="decimal" min="0" step="any" placeholder="0" autocomplete="off" autofocus />
+            <span aria-hidden="true">g</span>
+          </span>
+        </label>
+
+        <dl class="calc__resultados" aria-live="polite">
+          <div class="calc__fila">
+            <dt>Cera bruta <small>agua × {FACTOR_CERA}</small></dt>
+            <dd data-resultado="ceraBruta">—</dd>
+          </div>
+          <div class="calc__fila">
+            <dt>Esencia <small>{PORCENTAJE_ESENCIA} % de la cera bruta</small></dt>
+            <dd data-resultado="esencia">—</dd>
+          </div>
+          <div class="calc__fila calc__fila--total">
+            <dt>Cera neta <small>cera bruta − esencia</small></dt>
+            <dd data-resultado="ceraNeta">—</dd>
+          </div>
+        </dl>
+      </form>
+
+      <aside class="nota" aria-labelledby="nota-titulo">
+        <h2 class="nota__titulo" id="nota-titulo"><Icono nombre="vela" /> Nota: temperaturas</h2>
+
+        {
+          temperaturas.map(({ cera, etapas }) => (
+            <div class="nota__tabla">
+              <table>
+                <caption>{cera}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Etapa</th>
+                    <th scope="col">Tú</th>
+                    <th scope="col">Internet</th>
+                    <th scope="col">Usa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {etapas.map(({ etapa, tuyo, internet, promedio }) => (
+                    <tr>
+                      <th scope="row">{etapa}</th>
+                      <td>{tuyo}°</td>
+                      <td>{internet}°</td>
+                      <td class="nota__promedio">≈ {promedio} °C</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))
+        }
+
+        <h3>Conclusión</h3>
+        <ul>
+          <li>
+            <strong>La soya de bajo punto de fusión se funde a 45–50 °C</strong>, pero los proveedores la calientan a 82–85 °C:
+            tus 70–75 °C sí la derriten, aunque a mayor temperatura la fragancia se integra mejor y la vela suelta más aroma
+            al encenderse.
+          </li>
+          <li>
+            <strong>La fragancia se agrega más caliente de lo que tenías</strong>, en ambas ceras. A 60–65 °C la soya ya está
+            espesando y la fragancia puede no mezclarse bien. No pases de 85 °C para no evaporar las notas ligeras del aroma.
+          </li>
+          <li>
+            <strong>Tu vertido para soya está bien</strong>: 50–55 °C entra en el rango del fabricante (52–63 °C). Más frío
+            salen grumos y la superficie áspera; más caliente, "frosting" (manchas blancas) y hundimientos.
+          </li>
+          <li>
+            <strong>La parafina se vierte un poco más caliente</strong>: CandleScience recomienda unos 77 °C. Por debajo de
+            71 °C salen "líneas de salto" y se pega peor al vidrio.
+          </li>
+          <li>Tu 9 % de esencia coincide con el máximo recomendado para soya (7–9 %; hasta 10 % en algunas).</li>
+          <li>
+            Los rangos cambian con la marca de cera, el recipiente y la temporada: haz una vela de prueba con cada cera nueva y
+            revisa la ficha técnica de tu proveedor.
+          </li>
+        </ul>
+      </aside>
+    </main>
+
+    <script>
+      import { calcularInsumos, type Insumos } from '@/domain/calculadora';
+
+      const formato = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 1 });
+
+      for (const formulario of document.querySelectorAll<HTMLFormElement>('[data-calculadora]')) {
+        const agua = formulario.querySelector<HTMLInputElement>('input[name="agua"]')!;
+        const salidas = [...formulario.querySelectorAll<HTMLElement>('[data-resultado]')];
+
+        const mostrar = () => {
+          const gramos = agua.valueAsNumber;
+          const insumos = Number.isFinite(gramos) && gramos > 0 ? calcularInsumos(gramos) : null;
+          for (const salida of salidas) {
+            const valor = insumos?.[salida.dataset.resultado as keyof Insumos];
+            salida.textContent = valor === undefined ? '—' : `${formato.format(valor)} g`;
+          }
+        };
+
+        agua.addEventListener('input', mostrar);
+        formulario.addEventListener('submit', (e) => e.preventDefault());
+        // Al volver con "atrás", el navegador puede recordar el número escrito.
+        mostrar();
+      }
+    </script>
+
+    <style>
+      .calc {
+        max-width: 32rem;
+        padding-block: var(--espacio-7);
+      }
+
+      .calc__titulo {
+        font-family: var(--fuente-display);
+        font-size: var(--texto-2xl);
+        color: var(--color-cera);
+        margin-bottom: var(--espacio-2);
+      }
+
+      .calc__form {
+        margin-top: var(--espacio-6);
+        display: grid;
+        gap: var(--espacio-6);
+      }
+
+      .calc__campo {
+        display: grid;
+        gap: var(--espacio-2);
+        font-weight: 700;
+      }
+
+      .calc__entrada {
+        display: flex;
+        align-items: center;
+        gap: var(--espacio-3);
+        font-size: var(--texto-xl);
+      }
+
+      .calc__entrada input {
+        flex: 1;
+        min-width: 0;
+        padding: var(--espacio-3) var(--espacio-4);
+        font: inherit;
+        border: 2px solid var(--color-borde);
+        border-radius: var(--radio-md);
+        background: var(--color-blanco);
+      }
+
+      .calc__entrada input:focus-visible {
+        outline: none;
+        border-color: var(--color-cera);
+        box-shadow: 0 0 0 3px var(--color-cera-suave);
+      }
+
+      .calc__resultados {
+        display: grid;
+        border: 1px solid var(--color-borde);
+        border-radius: var(--radio-lg);
+        overflow: hidden;
+        background: var(--color-blanco);
+      }
+
+      .calc__fila {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--espacio-4);
+        padding: var(--espacio-4) var(--espacio-5);
+      }
+
+      .calc__fila + .calc__fila {
+        border-top: 1px solid var(--color-borde);
+      }
+
+      .calc__fila dt {
+        display: grid;
+        font-weight: 700;
+      }
+
+      .calc__fila small {
+        font-weight: 400;
+        font-size: var(--texto-xs);
+        color: var(--color-lavanda);
+      }
+
+      .calc__fila dd {
+        font-size: var(--texto-lg);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .calc__fila--total {
+        background: var(--color-cera-suave);
+      }
+
+      .nota {
+        margin-top: var(--espacio-7);
+        padding: var(--espacio-5);
+        border-left: 4px solid var(--color-cera);
+        border-radius: var(--radio-md);
+        background: var(--color-alterno);
+        display: grid;
+        gap: var(--espacio-5);
+        font-size: var(--texto-sm);
+      }
+
+      .nota__titulo {
+        display: flex;
+        align-items: center;
+        gap: var(--espacio-2);
+        font-family: var(--fuente-display);
+        font-size: var(--texto-lg);
+        color: var(--color-cera);
+      }
+
+      .nota h3 {
+        font-family: var(--fuente-display);
+        font-size: var(--texto-base);
+        color: var(--color-cera-oscuro);
+        margin-bottom: calc(-1 * var(--espacio-3));
+      }
+
+      .nota__tabla {
+        overflow-x: auto;
+      }
+
+      .nota table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .nota caption {
+        text-align: left;
+        font-weight: 700;
+        padding-bottom: var(--espacio-2);
+      }
+
+      .nota :is(th, td) {
+        padding: var(--espacio-2);
+        text-align: left;
+        border-bottom: 1px solid var(--color-borde);
+        white-space: nowrap;
+      }
+
+      .nota thead th {
+        font-size: var(--texto-xs);
+        color: var(--color-lavanda);
+        font-weight: 500;
+      }
+
+      .nota tbody th {
+        font-weight: 500;
+        white-space: normal;
+      }
+
+      .nota__promedio {
+        font-weight: 700;
+        color: var(--color-cera-oscuro);
+      }
+
+      .nota ul {
+        display: grid;
+        gap: var(--espacio-3);
+        padding-left: var(--espacio-5);
+        list-style: disc;
+      }
+
+      .calc__fila--total dd {
+        font-family: var(--fuente-display);
+        font-size: var(--texto-xl);
+        color: var(--color-cera-oscuro);
+      }
+    </style>
+  </body>
+</html>

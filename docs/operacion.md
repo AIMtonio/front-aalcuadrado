@@ -221,6 +221,10 @@ La sección no menciona la IA en ningún texto visible. Llama a `POST /api/disen
 
 Las palabras que no se aceptan están en `src/domain/palabras-prohibidas.ts`. Agrega o quita palabras ahí, en minúsculas y sin acentos. La revisión es del lado del navegador: evita gastar imágenes en ideas que no se van a aceptar, pero alguien que llame a la API directamente se la puede saltar.
 
+### Calculadora de insumos (privada)
+
+En `/calculadora/` pones los gramos de agua que le caben al molde y te da la cera bruta (agua × 0.9), la esencia (9 % de la cera bruta) y la cera neta que hay que pesar (bruta − esencia). Ningún enlace del sitio lleva ahí, no sale en el sitemap, pide a los buscadores no indexarla y no carga Analytics; pero no tiene contraseña: quien conozca la dirección la puede abrir. Los porcentajes están en `src/domain/calculadora.ts`.
+
 ---
 
 ## 4. Publicar los cambios

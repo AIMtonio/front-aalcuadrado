@@ -131,6 +131,9 @@ precios: {
 },
 ```
 
+- **Kits navideños:** precio fijo de $200 por kit (el marmoleado no lo cambia), en `PRECIO_KIT` de `src/config/sitio.ts`.
+- **Velas personalizadas:** cada tamaño o molde tiene su precio en la pestaña **Velas** del panel. El formulario muestra el precio de cada uno, "Desde $…" en cada tipo y el total (precio × cantidad). Un tamaño sin precio dice "A cotizar". Después de cambiar un precio, vuelve a publicar el sitio.
+
 ### Activar o desactivar la temporada
 
 En `src/config/sitio.ts`, dentro de `temporada`:
@@ -204,8 +207,14 @@ Velas individuales en `/velas/`. Quien visita elige **tipo** (en recipiente, de 
 | Toppings | `TOPPINGS` en `src/config/sitio.ts` (los mismos de los kits). |
 | Fotos de cada tipo | Pestaña **Velas** del panel (categorías `velas-recipiente`, `velas-molde`, `velas-jicara`). Ilustran la tarjeta del tipo, la vista previa y la sección "Así se ven". |
 | Textos de cada tipo, tiempo de entrega y preguntas | `sitio.velas` y `preguntas.velas` en `src/config/sitio.ts`. |
+| Precio de cada tamaño o molde | Pestaña **Velas** del panel. Sin precio sale "A cotizar". |
+| Tamaños bloqueados ("Próximamente") | `sitio.velas.pausadas` en `src/config/sitio.ts` (hoy, `['Pequeña']` en todos los tipos). Se ven pero no se pueden elegir; para quitarlos del todo, desactívalos en el panel. |
 
 En jícara el marmoleado nunca se ofrece, aunque el panel lo permitiera. Si la API todavía no tiene el módulo de velas, se usan los tamaños de `sitio.velas.presentaciones` (los mismos que carga el back de inicio, con los gramos pendientes). Las reglas están en `src/domain/velas.ts`.
+
+### Kits: marmoleado
+
+La vela del kit se puede pedir marmoleada, con vetas de un segundo color distinto al de la vela. La API de kits todavía no tiene un campo para eso, así que el marmoleado llega escrito en el color de la vela: "Lavanda, marmoleada con Blanco". La regla está en `pedidoKitParaApi` (`src/domain/kits.ts`).
 
 ### Categorías de aretes
 

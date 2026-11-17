@@ -16,6 +16,8 @@ const vela = {
 };
 /** Cuánto tarda un kit desde que se confirma el pedido. */
 const ENTREGA_KITS = 'una semana';
+/** Precio fijo de un kit navideño, en pesos (marmoleado incluido). */
+const PRECIO_KIT = 200;
 /** Cuánto tarda una vela personalizada desde que se confirma el pedido. */
 const ENTREGA_VELAS = 'una semana'; // [CONFIRMAR]
 
@@ -106,6 +108,7 @@ export const sitio = {
     descripcion: 'Una vela aromática, dos jabones artesanales y un nacimiento pequeño, hechos a mano con los colores y aromas que elijas.',
     /** Desde que confirmamos el pedido hasta que el kit está listo. */
     entrega: ENTREGA_KITS,
+    precio: PRECIO_KIT,
     /** Lo que trae cada kit. Los dos jabones salen iguales: misma forma, color y aroma. */
     contenido: [
       { cantidad: 1, nombre: `vela aromática de ${vela.gramos} g en frasco` },
@@ -152,11 +155,17 @@ export const sitio = {
    * - Tamaños y moldes salen de la pestaña Velas del panel (con sus gramos); los de
    *   aquí solo se usan si la API todavía no tiene el módulo de velas.
    * - Colores y aromas son los de los kits marcados "para la vela".
+   * - Los precios salen del panel; sin precio, la vela se cotiza.
    */
   velas: {
     nombre: 'Velas personalizadas',
     descripcion: 'Velas aromáticas hechas a mano en recipiente, en jícara o de molde, en el tamaño, color, aroma y topping que elijas.',
     entrega: ENTREGA_VELAS,
+    /**
+     * Tamaños que salen en el formulario pero bloqueados ("Próximamente"), en todos los
+     * tipos: de momento no se fabrican. Para quitarlos del todo, desactívalos en el panel.
+     */
+    pausadas: ['Pequeña'],
     /** Cómo se presenta cada tipo en el formulario. */
     tipos: {
       recipiente: { descripcion: 'En frasco de vidrio, en tres tamaños. Se puede marmolear.' },
@@ -164,14 +173,14 @@ export const sitio = {
       jicara: { descripcion: 'En media jícara natural, en tres tamaños.' },
     } satisfies Record<TipoVela, { descripcion: string }>,
     presentaciones: [
-      { tipo: 'recipiente', nombre: 'Pequeña', gramos: null, marmoleable: true },
-      { tipo: 'recipiente', nombre: 'Mediana', gramos: null, marmoleable: true },
-      { tipo: 'recipiente', nombre: 'Grande', gramos: null, marmoleable: true },
-      { tipo: 'molde', nombre: 'Cupcake', gramos: null, marmoleable: false },
-      { tipo: 'jicara', nombre: 'Pequeña', gramos: null, marmoleable: false },
-      { tipo: 'jicara', nombre: 'Mediana', gramos: null, marmoleable: false },
-      { tipo: 'jicara', nombre: 'Grande', gramos: null, marmoleable: false },
-    ] satisfies PresentacionVela[],
+      { tipo: 'recipiente', nombre: 'Pequeña', gramos: null, precio: null, marmoleable: true },
+      { tipo: 'recipiente', nombre: 'Mediana', gramos: null, precio: null, marmoleable: true },
+      { tipo: 'recipiente', nombre: 'Grande', gramos: null, precio: null, marmoleable: true },
+      { tipo: 'molde', nombre: 'Cupcake', gramos: null, precio: null, marmoleable: false },
+      { tipo: 'jicara', nombre: 'Pequeña', gramos: null, precio: null, marmoleable: false },
+      { tipo: 'jicara', nombre: 'Mediana', gramos: null, precio: null, marmoleable: false },
+      { tipo: 'jicara', nombre: 'Grande', gramos: null, precio: null, marmoleable: false },
+    ] satisfies Omit<PresentacionVela, 'proximamente'>[],
     toppings: TOPPINGS,
   },
 
@@ -215,8 +224,7 @@ export const sitio = {
       },
       {
         pregunta: '¿Cuánto cuesta un kit?',
-        respuesta:
-          'Depende del tamaño y de lo que elijas. Al recibir tu pedido te escribimos con el precio y la fecha de entrega; no pagas nada hasta confirmarlo.',
+        respuesta: `$${PRECIO_KIT} cada uno, con los colores, aromas y topping que elijas, marmoleado incluido. Al recibir tu pedido te escribimos para confirmar la fecha de entrega; no pagas nada hasta confirmarlo.`,
       },
       {
         pregunta: '¿De qué están hechos?',
@@ -249,7 +257,7 @@ export const sitio = {
       {
         pregunta: '¿Cuánto cuesta una vela?',
         respuesta:
-          'Depende del tipo, el tamaño y lo que elijas. Al recibir tu pedido te escribimos con el precio y la fecha de entrega; no pagas nada hasta confirmarlo.',
+          'Depende del tipo y el tamaño: al armarla ves el precio de cada una y el total. El marmoleado no cambia el precio. Si un tamaño dice "a cotizar", te escribimos con el precio. No pagas nada hasta confirmar tu pedido.',
       },
       {
         pregunta: '¿Qué diferencia hay entre los tipos?',

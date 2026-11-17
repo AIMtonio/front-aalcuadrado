@@ -372,6 +372,8 @@ Cada decisión importante tiene su registro (ADR) con contexto, alternativas y c
 | `API_URL` queda escrita en la página | Cualquiera puede llamar a las rutas públicas | Solo se exponen rutas sin datos sensibles, con límite por IP y validación en la API. |
 | El filtro de palabras del diseñador corre en el navegador | Se puede saltar llamando a la API directo | La API limita a 10 diseños por minuto por IP y rechaza (422) lo que bloquea la moderación de OpenAI; el filtro del front solo ahorra imágenes. |
 | Los gramos de cada tamaño de vela están pendientes | El cliente elige "Mediana" sin saber cuánto pesa | El sitio los muestra en cuanto se capturan en el panel ("Mediana · 180 g"). Siguiente paso: capturarlos y volver a publicar. |
+| Un tamaño de vela sin precio en el panel | El cliente ve "A cotizar" y no sabe cuánto cuesta | Capturar el precio en la pestaña Velas y volver a publicar; el total se calcula solo. |
+| El marmoleado del kit viaja dentro de `velaColor` | Si la API valida colores algún día, "Lavanda, marmoleada con Blanco" se rechazaría | Agregar `velaMarmoleado`/`velaColorMarmoleado` al DTO de kits y mandarlos aparte (`pedidoKitParaApi`). |
 | Los dos jabones de un kit comparten forma, color y aroma | El cliente no puede pedir dos jabones distintos | Requiere ampliar `pedidos_kits` en el back y el formulario. |
 | Precios de aretes fijos en `sitio.ts` | El precio de cada producto en la API se ignora | Mover el precio al panel cuando haya precios distintos por modelo. |
 

@@ -30,8 +30,11 @@ export interface CanalPedidos {
   mayoreo(): string;
   /** Mandar (o completar) un pedido de kit navideño; `folio` es el id que regresó la API. */
   kit(pedido: PedidoKit, folio?: number): string;
-  /** Mandar (o completar) un pedido de vela personalizada; `folio` es el id que regresó la API. */
-  vela(pedido: PedidoVela, folio?: number): string;
+  /**
+   * Mandar (o completar) un pedido de vela personalizada; `folio` es el id que regresó la
+   * API y `precio`, el de una vela según el panel (`null` si se cotiza).
+   */
+  vela(pedido: PedidoVela, extra?: { folio?: number; precio?: number | null }): string;
   /** Contacto general (encabezado, botón flotante, pie de página), según la página. */
   general(linea?: Linea): string;
 }
@@ -74,17 +77,19 @@ class CanalWhatsApp implements CanalPedidos {
   }
 
   kit(p: PedidoKit, folio?: number) {
+    const marmol = p.velaMarmoleado && p.velaColorMarmoleado ? ` marmoleada con ${p.velaColorMarmoleado.toLowerCase()}` : '';
     const lineas = [
       folio ? `Hola, acabo de mandar el pedido #${folio} de un kit navideño:` : 'Hola, quiero pedir un kit navideño:',
       `• 2 jabones: ${p.jabonColor.toLowerCase()}, aroma ${p.jabonAroma.toLowerCase()}, forma ${p.jabonForma.toLowerCase()}`,
-      `• 1 vela: ${p.velaColor.toLowerCase()}, aroma ${p.velaAroma.toLowerCase()}, ${p.velaTopping.toLowerCase()}`,
+      `• 1 vela: ${p.velaColor.toLowerCase()}${marmol}, aroma ${p.velaAroma.toLowerCase()}, ${p.velaTopping.toLowerCase()}`,
       '• 1 nacimiento pequeño',
-      `A nombre de ${p.clienteNombre} (${p.clienteContacto}). ¿Me pasan el precio?`,
+      `Precio: ${formatearPrecio(sitio.kits.precio)}`,
+      `A nombre de ${p.clienteNombre} (${p.clienteContacto}).`,
     ];
     return this.#enlace(lineas.join('\n'));
   }
 
-  vela(p: PedidoVela, folio?: number) {
+  vela(p: PedidoVela, { folio, precio = null }: { folio?: number; precio?: number | null } = {}) {
     const cuantas = p.cantidad === 1 ? 'una vela' : `${p.cantidad} velas iguales`;
     const marmol = p.marmoleado && p.colorMarmoleado ? `, marmoleada con ${p.colorMarmoleado.toLowerCase()}` : '';
     const lineas = [
@@ -94,7 +99,14 @@ class CanalWhatsApp implements CanalPedidos {
       `• Aroma ${p.aroma.toLowerCase()}, ${p.topping.toLowerCase()}`,
       ...(folio && p.cantidad > 1 ? [`• ${p.cantidad} piezas`] : []),
       ...(p.notas ? [`Notas: ${p.notas}`] : []),
-      `A nombre de ${p.clienteNombre} (${p.clienteContacto}). ¿Me pasan el precio?`,
+      ...(precio === null
+        ? []
+        : [
+            p.cantidad > 1
+              ? `Precio: ${formatearPrecio(precio)} c/u, total ${formatearPrecio(precio * p.cantidad)}`
+              : `Precio: ${formatearPrecio(precio)}`,
+          ]),
+      `A nombre de ${p.clienteNombre} (${p.clienteContacto}).${precio === null ? ' ¿Me pasan el precio?' : ''}`,
     ];
     return this.#enlace(lineas.join('\n'));
   }

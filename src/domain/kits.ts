@@ -40,7 +40,8 @@ export interface OpcionesKit {
   vela: { colores: { nombre: string; hex: string }[]; aromas: string[] };
 }
 
-export interface PedidoKit {
+/** Lo que acepta la API en `POST /api/pedidos`: solo texto, sin campos de más. */
+export interface PedidoKitApi {
   clienteNombre: string;
   clienteContacto: string;
   jabonColor: string;
@@ -51,10 +52,17 @@ export interface PedidoKit {
   velaTopping: string;
 }
 
-export type CampoKit = keyof PedidoKit;
+export interface PedidoKit extends PedidoKitApi {
+  velaMarmoleado: boolean;
+  /** Solo si la vela es marmoleada: el color de las vetas. */
+  velaColorMarmoleado?: string;
+}
+
+type CampoTexto = keyof PedidoKitApi;
+export type CampoKit = CampoTexto | 'velaColorMarmoleado';
 
 /** Largo máximo de cada campo, igual que en la API. */
-export const MAXIMOS: Record<CampoKit, number> = {
+export const MAXIMOS: Record<CampoTexto, number> = {
   clienteNombre: 100,
   clienteContacto: 150,
   jabonColor: 60,
@@ -66,7 +74,7 @@ export const MAXIMOS: Record<CampoKit, number> = {
 };
 
 /** Mensaje cuando falta cada campo; en el orden en que aparecen en el formulario. */
-const FALTA: Record<CampoKit, string> = {
+const FALTA: Record<CampoTexto, string> = {
   jabonColor: 'Elige el color del jabón.',
   jabonAroma: 'Elige el aroma del jabón.',
   jabonForma: 'Elige la forma del jabón.',
@@ -77,17 +85,23 @@ const FALTA: Record<CampoKit, string> = {
   clienteContacto: 'Déjanos un correo o un teléfono.',
 };
 
-export const CAMPOS_KIT = Object.keys(FALTA) as CampoKit[];
+const CAMPOS_TEXTO = Object.keys(FALTA) as CampoTexto[];
+
+/** Todos los campos en el orden del formulario: el primero con error recibe el foco. */
+export const CAMPOS_KIT: CampoKit[] = [...CAMPOS_TEXTO.slice(0, 6), 'velaColorMarmoleado', ...CAMPOS_TEXTO.slice(6)];
 
 export type RevisionPedido =
   { valido: true; pedido: PedidoKit } | { valido: false; errores: Partial<Record<CampoKit, string>> };
 
-/** Revisa el pedido antes de mandarlo. Los textos se recortan y los espacios repetidos se juntan. */
-export function revisarPedido(datos: Partial<Record<CampoKit, unknown>>): RevisionPedido {
-  const pedido = {} as PedidoKit;
+/**
+ * Revisa el pedido antes de mandarlo. Los textos se recortan y los espacios repetidos se
+ * juntan. `velaMarmoleado` llega como "on" si se marcó la casilla.
+ */
+export function revisarPedido(datos: Partial<Record<CampoKit | 'velaMarmoleado', unknown>>): RevisionPedido {
+  const pedido = { velaMarmoleado: Boolean(datos.velaMarmoleado) } as PedidoKit;
   const errores: Partial<Record<CampoKit, string>> = {};
 
-  for (const campo of CAMPOS_KIT) {
+  for (const campo of CAMPOS_TEXTO) {
     const valor = limpiar(datos[campo]);
     pedido[campo] = valor;
     if (!valor) errores[campo] = FALTA[campo];
@@ -97,5 +111,28 @@ export function revisarPedido(datos: Partial<Record<CampoKit, unknown>>): Revisi
     errores.clienteContacto = MENSAJE_CONTACTO;
   }
 
+  if (pedido.velaMarmoleado) {
+    const veta = limpiar(datos.velaColorMarmoleado);
+    if (!veta) errores.velaColorMarmoleado = 'Elige el segundo color para el marmoleado.';
+    else if (veta === pedido.velaColor) errores.velaColorMarmoleado = 'Para el marmoleado elige un color distinto al de la vela.';
+    else if (colorDeVelaParaApi(pedido.velaColor, veta).length > MAXIMOS.velaColor) {
+      errores.velaColorMarmoleado = 'Estos colores no caben en el pedido; escríbenos por WhatsApp.';
+    }
+    pedido.velaColorMarmoleado = veta;
+  }
+
   return Object.keys(errores).length > 0 ? { valido: false, errores } : { valido: true, pedido };
+}
+
+/** "Rojo navidad, marmoleada con Blanco": así llega el marmoleado al panel. */
+function colorDeVelaParaApi(color: string, veta?: string): string {
+  return veta ? `${color}, marmoleada con ${veta}` : color;
+}
+
+/**
+ * El cuerpo de `POST /api/pedidos`. La API todavía no tiene un campo para el marmoleado
+ * (y rechaza los que no conoce), así que va escrito en el color de la vela.
+ */
+export function pedidoKitParaApi({ velaMarmoleado, velaColorMarmoleado, ...pedido }: PedidoKit): PedidoKitApi {
+  return { ...pedido, velaColor: colorDeVelaParaApi(pedido.velaColor, velaMarmoleado ? velaColorMarmoleado : undefined) };
 }

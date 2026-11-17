@@ -1,9 +1,9 @@
 ---
 /**
  * Dibujo de un kit navideño: dos jabones iguales (con la forma elegida), una vela
- * en frasco (con su topping) y un nacimiento pequeño. Los colores salen de `--jabon`
- * y `--vela`; `src/scripts/kit.ts` los cambia y marca con `data-activa` la forma y
- * el topping elegidos.
+ * en frasco (con su topping) y un nacimiento pequeño. Los colores salen de `--jabon`,
+ * `--vela` y `--veta`; `src/scripts/kit.ts` los cambia, marca con `data-activa` la
+ * forma y el topping elegidos, y con `data-marmol` la vela marmoleada.
  */
 import { FIGURAS_JABON, type FiguraJabon, type FiguraTopping } from '@/domain/kits';
 import Toppings from '@/components/velas/Toppings.astro';
@@ -27,6 +27,16 @@ const activa = (grupo: Set<string>, valor: string, actual: string) => (grupo.has
 
 // Los dos jabones del kit: el de atrás, más chico; el de enfrente, a tamaño normal.
 // Las formas están dibujadas centradas en (95, 128) y apoyadas en y≈186.
+// Cada dibujo de la página necesita su propio recorte de las vetas.
+const recorteVetas = `kit-vetas-${Math.random().toString(36).slice(2, 8)}`;
+/** Vetas del marmoleado, recortadas a la cera del frasco (las mismas de VistaVela). */
+const vetas = [
+  'M184 128c26-14 44 26 72 10s40 6 60-6',
+  'M186 162c22-16 48 14 70 0s36 10 60-2',
+  'M190 188c24-8 40 6 62-2s32-6 54 0',
+  'M218 104c10 18 4 40 18 62s4 30 10 40',
+];
+
 const jabones = [
   { transform: 'translate(116 84) scale(0.62)', clase: 'vista-kit__jabon--atras' },
   { transform: undefined, clase: undefined },
@@ -36,13 +46,18 @@ const jabones = [
 <svg
   class:list={['vista-kit', clase]}
   viewBox="0 0 440 240"
-  style={`--jabon:${jabon};--vela:${vela}`}
+  style={`--jabon:${jabon};--vela:${vela};--veta:${vela}`}
   role={etiqueta ? 'img' : undefined}
   aria-label={etiqueta}
   aria-hidden={etiqueta ? undefined : 'true'}
   focusable="false"
   data-vista-kit
 >
+  <defs>
+    <clipPath id={recorteVetas}>
+      <rect x="203" y="114" width="94" height="80" rx="11" />
+    </clipPath>
+  </defs>
   <ellipse cx="176" cy="201" rx="40" ry="6" class="vista-kit__sombra" />
   <ellipse cx="95" cy="204" rx="62" ry="9" class="vista-kit__sombra" />
   <ellipse cx="290" cy="204" rx="62" ry="9" class="vista-kit__sombra" />
@@ -133,6 +148,9 @@ const jabones = [
   <g transform="translate(40 0)">
     <rect x="196" y="86" width="108" height="114" rx="16" class="vista-kit__frasco" />
     <rect x="203" y="118" width="94" height="76" rx="11" class="vista-kit__cera" />
+    <g clip-path={`url(#${recorteVetas})`} class="vista-kit__vetas">
+      {vetas.map((d) => <path d={d} />)}
+    </g>
     <ellipse cx="250" cy="120" rx="47" ry="8" class="vista-kit__cera vista-kit__cera-arriba" />
     <rect x="207" y="96" width="7" height="62" rx="3.5" class="vista-kit__reflejo" />
     <rect x="226" y="150" width="48" height="22" rx="4" class="vista-kit__etiqueta" />
@@ -263,6 +281,20 @@ const jabones = [
     stroke: rgb(23 20 43 / 0.12);
     stroke-width: 1.5;
     transition: fill var(--duracion-media);
+  }
+
+  .vista-kit__vetas {
+    display: none;
+    fill: none;
+    stroke: var(--veta);
+    stroke-width: 6;
+    stroke-linecap: round;
+    opacity: 0.9;
+    transition: stroke var(--duracion-media);
+  }
+
+  .vista-kit[data-marmol] .vista-kit__vetas {
+    display: inline;
   }
 
   .vista-kit__cera-arriba {

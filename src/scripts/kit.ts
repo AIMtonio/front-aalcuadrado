@@ -2,10 +2,10 @@
  * Formulario "Arma tu kit": actualiza la vista previa y el resumen al elegir,
  * revisa el pedido y lo manda a la API, o por WhatsApp si no hay API o falla.
  */
-import { CAMPOS_KIT, revisarPedido, type CampoKit, type PedidoKit } from '@/domain/kits';
+import { CAMPOS_KIT, pedidoKitParaApi, revisarPedido, type CampoKit, type PedidoKit } from '@/domain/kits';
 import { ClienteEncargos, ErrorPedido } from '@/services/encargos';
 import { sitio } from '@/config/sitio';
-import { pedidos } from '@/services/pedidos';
+import { formatearPrecio, pedidos } from '@/services/pedidos';
 
 function iniciarKit(formulario: HTMLFormElement) {
   const seccion = formulario.closest('section')!;
@@ -18,16 +18,40 @@ function iniciarKit(formulario: HTMLFormElement) {
   const textoEnviar = $<HTMLElement>('[data-enviar-texto]');
   const porWhatsApp = $<HTMLAnchorElement>('[data-whatsapp]');
   const listo = $<HTMLElement>('[data-listo]');
+  const casillaMarmol = $<HTMLInputElement>('[data-marmoleado]');
+  const vetas = $<HTMLFieldSetElement>('[data-vetas]');
   const textoOriginal = textoEnviar.textContent ?? '';
+
+  const elegido = (nombre: string) => formulario.querySelector<HTMLInputElement>(`input[name="${nombre}"]:checked:not(:disabled)`);
+
+  /** Las vetas no pueden ser del mismo color que la vela. */
+  function mostrarMarmol() {
+    const color = elegido('velaColor');
+    for (const veta of formulario.querySelectorAll<HTMLInputElement>('input[name="velaColorMarmoleado"]')) {
+      veta.disabled = veta.value === color?.value;
+      if (veta.disabled && veta.checked) {
+        veta.checked = false;
+        formulario.querySelector<HTMLInputElement>('input[name="velaColorMarmoleado"]:not(:disabled)')!.checked = true;
+      }
+    }
+    const veta = elegido('velaColorMarmoleado');
+    vetas.hidden = !casillaMarmol.checked;
+    vista.toggleAttribute('data-marmol', casillaMarmol.checked);
+    if (veta?.dataset.hex) vista.style.setProperty('--veta', veta.dataset.hex);
+    const resumen = seccion.querySelector('[data-resumen="velaMarmoleado"]');
+    if (resumen) resumen.textContent = casillaMarmol.checked && veta ? `Sí, con ${veta.value.toLowerCase()}` : 'No';
+  }
 
   /** Colores y figuras de la vista previa, y el texto del resumen. */
   function actualizarVista(input: HTMLInputElement) {
     const campo = input.name as CampoKit;
+    if (input.name === 'velaMarmoleado' || campo === 'velaColorMarmoleado') return mostrarMarmol();
     const resumen = seccion.querySelector(`[data-resumen="${campo}"]`);
     if (resumen) resumen.textContent = input.value;
 
     if (input.dataset.hex) {
       vista.style.setProperty(campo === 'jabonColor' ? '--jabon' : '--vela', input.dataset.hex);
+      if (campo === 'velaColor') mostrarMarmol();
     }
     if (input.dataset.figura) {
       const grupo = campo === 'jabonForma' ? 'forma' : 'topping';
@@ -39,6 +63,7 @@ function iniciarKit(formulario: HTMLFormElement) {
 
   function sincronizarVista() {
     formulario.querySelectorAll<HTMLInputElement>('input[type="radio"]:checked').forEach(actualizarVista);
+    mostrarMarmol();
   }
 
   function mostrarError(campo: CampoKit, mensaje?: string) {
@@ -83,10 +108,10 @@ function iniciarKit(formulario: HTMLFormElement) {
 
     ocupado(true);
     try {
-      const { id } = await cliente.enviar(pedido);
+      const { id } = await cliente.enviar(pedidoKitParaApi(pedido));
       terminar(
         `¡Recibimos tu pedido #${id}!`,
-        `Te escribimos pronto a ${pedido.clienteContacto} para confirmar el precio. Tu kit estará listo en ${sitio.kits.entrega}.`,
+        `Te escribimos pronto a ${pedido.clienteContacto} para confirmar tu pedido de ${formatearPrecio(sitio.kits.precio)}. Tu kit estará listo en ${sitio.kits.entrega}.`,
         pedidos.kit(pedido, id),
       );
     } catch (error) {
@@ -101,7 +126,7 @@ function iniciarKit(formulario: HTMLFormElement) {
 
   formulario.addEventListener('change', (e) => {
     const input = e.target as HTMLInputElement;
-    if (input.type === 'radio') {
+    if (input.type === 'radio' || input.type === 'checkbox') {
       actualizarVista(input);
       mostrarError(input.name as CampoKit);
     }
@@ -118,7 +143,7 @@ function iniciarKit(formulario: HTMLFormElement) {
     aviso.hidden = true;
     porWhatsApp.hidden = true;
 
-    const datos = Object.fromEntries(new FormData(formulario)) as Partial<Record<CampoKit, unknown>>;
+    const datos = Object.fromEntries(new FormData(formulario)) as Partial<Record<CampoKit | 'velaMarmoleado', unknown>>;
     const revision = revisarPedido(datos);
     for (const campo of CAMPOS_KIT) mostrarError(campo, revision.valido ? undefined : revision.errores[campo]);
     if (!revision.valido) {

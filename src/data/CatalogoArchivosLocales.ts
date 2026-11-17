@@ -311,23 +311,30 @@ function construirOpcionesKit(): OpcionesKit {
  * tiene el módulo de velas (o no tiene ninguno disponible), los de `sitio.velas`.
  * Los colores y aromas son los de la vela de los kits.
  */
+/** "Pequeña" = "pequena" = "PEQUEÑA": el panel puede escribirlo con o sin acentos. */
+const normalizarNombre = (nombre: string) =>
+  nombre.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+
 function construirOpcionesVela(opcionesKit: OpcionesKit): OpcionesVela {
   const deLaApi = catalogoApi?.velas?.presentaciones ?? [];
   if (catalogoApi?.velas && deLaApi.length === 0) {
     avisar('El panel no tiene tamaños ni moldes de velas disponibles; se usan los de src/config/sitio.ts.');
   }
-  const presentaciones: PresentacionVela[] = deLaApi.length > 0 ? deLaApi : [...sitio.velas.presentaciones];
+  const presentaciones: Omit<PresentacionVela, 'proximamente'>[] = deLaApi.length > 0 ? deLaApi : [...sitio.velas.presentaciones];
+  const pausadas = new Set<string>(sitio.velas.pausadas.map(normalizarNombre));
   return {
     tipos: TIPOS_VELA.map((tipo) => ({
       tipo,
       presentaciones: presentaciones
         .filter((p) => p.tipo === tipo)
-        .map(({ nombre, gramos, marmoleable }) => ({
+        .map(({ nombre, gramos, precio, marmoleable }) => ({
           tipo,
           nombre,
           gramos,
+          precio,
           // En jícara nunca, aunque el panel lo permitiera.
           marmoleable: marmoleable && admiteMarmoleado(tipo),
+          proximamente: pausadas.has(normalizarNombre(nombre)),
         })),
     })).filter((t) => t.presentaciones.length > 0),
     colores: opcionesKit.vela.colores,

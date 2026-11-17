@@ -28,7 +28,11 @@ export interface PresentacionVela {
   nombre: string;
   /** Gramos de cera; `null` mientras el dueño no los defina en el panel. */
   gramos: number | null;
+  /** Precio de una vela, en pesos; `null` mientras el dueño no lo defina en el panel (se cotiza). */
+  precio: number | null;
   marmoleable: boolean;
+  /** Se muestra, pero bloqueada: de momento no se fabrica (`sitio.velas.pausadas`). */
+  proximamente: boolean;
 }
 
 /** Colores y aromas que se pueden elegir para una vela (los de los kits marcados "para la vela"). */
@@ -42,6 +46,12 @@ export interface OpcionesVela {
 /** "Mediana · 180 g", o solo "Mediana" si los gramos están pendientes. */
 export function nombreConGramos(p: Pick<PresentacionVela, 'nombre' | 'gramos'>): string {
   return p.gramos ? `${p.nombre} · ${p.gramos} g` : p.nombre;
+}
+
+/** El precio más bajo de las presentaciones que se pueden pedir, o `null` si ninguna tiene precio. */
+export function precioDesde(presentaciones: Pick<PresentacionVela, 'precio' | 'proximamente'>[]): number | null {
+  const precios = presentaciones.filter((p) => !p.proximamente && p.precio !== null).map((p) => p.precio!);
+  return precios.length > 0 ? Math.min(...precios) : null;
 }
 
 /** Máximo de velas iguales en un pedido, igual que en la API; para más, que escriban. */

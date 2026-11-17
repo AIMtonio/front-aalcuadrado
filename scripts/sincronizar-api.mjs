@@ -121,7 +121,7 @@ const kits =
 // el orden del panel. `null` si la API no tiene el módulo: el sitio usa los de src/config/sitio.ts.
 const disponibles = (presentacionesVela ?? []).filter((p) => p.disponible);
 const velas = presentacionesVela
-  ? { presentaciones: disponibles.map(({ tipo, nombre, gramos, marmoleable, orden }) => ({ tipo, nombre, gramos, marmoleable, orden })) }
+  ? { presentaciones: disponibles.map(({ tipo, nombre, gramos, precio = null, marmoleable, orden }) => ({ tipo, nombre, gramos, precio, marmoleable, orden })) }
   : null;
 
 await writeFile(MANIFIESTO, `${JSON.stringify({ productos, categorias, fotos, kits, velas }, null, 2)}\n`);

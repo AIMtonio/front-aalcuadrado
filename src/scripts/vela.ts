@@ -6,7 +6,7 @@
 import { CAMPOS_VELA, MAX_CANTIDAD_VELAS, NOMBRES_TIPO_VELA, revisarPedidoVela, type CampoVela, type PedidoVela, type TipoVela } from '@/domain/velas';
 import { ClienteEncargos, ErrorPedido } from '@/services/encargos';
 import { sitio } from '@/config/sitio';
-import { pedidos } from '@/services/pedidos';
+import { formatearPrecio, pedidos } from '@/services/pedidos';
 
 function iniciarVela(formulario: HTMLFormElement) {
   const seccion = formulario.closest('section')!;
@@ -46,7 +46,8 @@ function iniciarVela(formulario: HTMLFormElement) {
       lista.disabled = !activa;
       if (activa && !lista.querySelector('input:checked')) {
         const recordado = tamanoPorTipo.get(tipo);
-        const opciones = [...lista.querySelectorAll<HTMLInputElement>('input')];
+        // Las bloqueadas ("Próximamente") no se eligen.
+        const opciones = [...lista.querySelectorAll<HTMLInputElement>('input:not(:disabled)')];
         (opciones.find((o) => o.value === recordado) ?? opciones[0]!).checked = true;
       }
     }
@@ -64,6 +65,7 @@ function iniciarVela(formulario: HTMLFormElement) {
     if (!presentacion) return;
     tamanoPorTipo.set(tipoActual(), presentacion.value);
     resumen('presentacion', presentacion.dataset.texto ?? presentacion.value);
+    mostrarPrecio();
     vista.style.setProperty('--escala', presentacion.dataset.escala ?? '1');
 
     const marmoleable = presentacion.hasAttribute('data-marmoleable');
@@ -108,9 +110,29 @@ function iniciarVela(formulario: HTMLFormElement) {
     }
   }
 
+  /** Precio de una vela de la presentación elegida (del panel), o `null` si se cotiza. */
+  function precioActual(): number | null {
+    const precio = elegido('presentacion')?.dataset.precio;
+    return precio ? Number(precio) : null;
+  }
+
+  function cantidadActual(): number | null {
+    const n = Number(cantidad.value);
+    return Number.isInteger(n) && n >= 1 && n <= MAX_CANTIDAD_VELAS ? n : null;
+  }
+
+  /** Precio por vela y total (precio × cantidad); sin precio en el panel, "A cotizar". */
+  function mostrarPrecio() {
+    const precio = precioActual();
+    const n = cantidadActual();
+    resumen('precio', precio === null ? 'A cotizar' : formatearPrecio(precio));
+    resumen('total', precio === null ? 'A cotizar' : n === null ? '—' : formatearPrecio(precio * n));
+  }
+
   function mostrarCantidad() {
     const n = Number(cantidad.value);
     resumen('cantidad', Number.isInteger(n) && n >= 1 ? String(n) : '—');
+    mostrarPrecio();
   }
 
   function sincronizarVista() {
@@ -152,8 +174,10 @@ function iniciarVela(formulario: HTMLFormElement) {
   }
 
   async function mandar(pedido: PedidoVela) {
+    // El precio no va en el pedido (la API lo toma del panel); solo se muestra y va en WhatsApp.
+    const precio = precioActual();
     if (!cliente) {
-      const enlace = pedidos.vela(pedido);
+      const enlace = pedidos.vela(pedido, { precio });
       window.open(enlace, '_blank', 'noopener');
       terminar('¡Ya casi!', 'Te abrimos WhatsApp con tu pedido; solo envía el mensaje. Si no se abrió, toca el botón.', enlace);
       return;
@@ -163,15 +187,16 @@ function iniciarVela(formulario: HTMLFormElement) {
     try {
       const { id } = await cliente.enviar(pedido);
       const cuales = pedido.cantidad === 1 ? 'Tu vela estará lista' : 'Tus velas estarán listas';
+      const total = precio === null ? 'para confirmar el precio' : `para confirmar tu pedido (total ${formatearPrecio(precio * pedido.cantidad)})`;
       terminar(
         `¡Recibimos tu pedido #${id}!`,
-        `Te escribimos pronto a ${pedido.clienteContacto} para confirmar el precio. ${cuales} en ${sitio.velas.entrega}.`,
-        pedidos.vela(pedido, id),
+        `Te escribimos pronto a ${pedido.clienteContacto} ${total}. ${cuales} en ${sitio.velas.entrega}.`,
+        pedidos.vela(pedido, { folio: id, precio }),
       );
     } catch (error) {
       aviso.textContent = error instanceof ErrorPedido ? error.message : 'Algo salió mal. Intenta de nuevo o mándanoslo por WhatsApp.';
       aviso.hidden = false;
-      porWhatsApp.href = pedidos.vela(pedido);
+      porWhatsApp.href = pedidos.vela(pedido, { precio });
       porWhatsApp.hidden = false;
     } finally {
       ocupado(false);

@@ -6,7 +6,7 @@
  * el pedido; el dueño lo cotiza desde la pestaña Pedidos del panel. Puro (solo
  * `fetch`) para poder usarlo en el navegador.
  */
-import type { PedidoKit } from '@/domain/kits';
+import type { PedidoKitApi } from '@/domain/kits';
 import type { PedidoVela } from '@/domain/velas';
 import { esLimiteDeApi, mensajesDeError, textoDeError, urlDeApi } from './api';
 
@@ -37,7 +37,7 @@ const RECURSOS = {
 } as const;
 
 interface Encargos {
-  kit: PedidoKit;
+  kit: PedidoKitApi;
   vela: PedidoVela;
 }
 

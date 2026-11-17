@@ -122,6 +122,26 @@
   box-shadow: 0 0 0 2px var(--color-blanco);
 }
 
+/* Precio debajo del nombre: "Mediana · 180 g" / "$150". */
+.ficha--precio {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  border-radius: var(--radio-md);
+  line-height: 1.25;
+}
+
+.ficha__precio {
+  color: var(--arma-acento);
+  font-size: var(--texto-xs);
+  font-weight: 700;
+}
+
+.ficha:has(input:checked) .ficha__precio {
+  color: inherit;
+}
+
+
 .arma__datos {
   display: grid;
   gap: var(--espacio-4);
@@ -247,6 +267,43 @@
   font-weight: 700;
 }
 
+.arma__resumen .arma__total {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding-top: var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+.arma__total div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--espacio-3);
+}
+
+.arma__total dt {
+  color: var(--color-lavanda);
+}
+
+.arma__total dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.arma__total-final dt {
+  color: var(--color-tinta);
+  font-weight: 700;
+}
+
+.arma__total-final dd {
+  font-family: var(--fuente-display);
+  font-size: var(--texto-lg);
+  color: var(--arma-acento);
+}
+
 .arma__nota-grupo {
   margin-top: calc(var(--espacio-3) * -1);
   color: var(--color-lavanda);
@@ -359,4 +416,42 @@
     position: sticky;
     top: calc(var(--altura-encabezado) + var(--altura-pestanas) + var(--espacio-5));
   }
+}
+
+/* ---------- Marmoleado ---------- */
+
+.marmol__casilla {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-height: 2.75rem;
+  font-size: var(--texto-sm);
+  cursor: pointer;
+}
+
+.marmol__casilla input {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin: 0;
+  accent-color: var(--arma-acento);
+}
+
+.marmol__opcional {
+  color: var(--color-lavanda);
+  font-weight: 400;
+}
+
+.marmol [data-vetas] {
+  padding-left: var(--espacio-4);
+  border-left: 3px solid color-mix(in srgb, var(--arma-acento) 20%, transparent);
+}
+
+.ficha:has(input:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ficha:has(input:disabled):hover {
+  border-color: var(--color-borde);
 }

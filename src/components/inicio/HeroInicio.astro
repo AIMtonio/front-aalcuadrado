@@ -8,6 +8,7 @@ import { Picture } from 'astro:assets';
 import type { Producto } from '@/domain/catalogo';
 import { rutas } from '@/config/rutas';
 import { sitio } from '@/config/sitio';
+import { formatearPrecio } from '@/services/pedidos';
 import Simbolo from '@/components/Simbolo.astro';
 import Icono from '@/components/Icono.astro';
 import VistaKit from '@/components/kits/VistaKit.astro';
@@ -72,7 +73,7 @@ const portada = destacado?.fotos[0];
           <div class="linea__cuerpo">
             <span class="linea__icono" aria-hidden="true"><Icono nombre="regalo" /></span>
             <h3>{sitio.kits.nombre}</h3>
-            <p>Una vela, dos jabones y un nacimiento pequeño, a tu medida. Elige colores, aromas y forma.</p>
+            <p>Una vela, dos jabones y un nacimiento pequeño, a tu medida, por {formatearPrecio(sitio.kits.precio)}. Elige colores, aromas y forma.</p>
             <span class="linea__ir">Armar mi kit <Icono nombre="flecha" /></span>
           </div>
         </a>

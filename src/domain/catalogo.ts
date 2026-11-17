@@ -176,6 +176,8 @@ export const PresentacionVelaApiSchema = z.object({
   tipo: z.enum(TIPOS_VELA),
   nombre: z.string().min(1),
   gramos: z.number().int().positive().nullable(),
+  /** Precio de una vela, en pesos. Falta en manifiestos de antes de los precios. */
+  precio: z.number().positive().nullable().default(null),
   marmoleable: z.boolean(),
   orden: z.number(),
 });

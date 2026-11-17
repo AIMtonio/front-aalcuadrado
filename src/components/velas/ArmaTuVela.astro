@@ -10,9 +10,9 @@ import { Picture } from 'astro:assets';
 import { API_URL } from 'astro:env/server';
 import { sitio } from '@/config/sitio';
 import { catalogo } from '@/data';
-import { MAXIMOS_VELA, MAX_CANTIDAD_VELAS, NOMBRES_TIPO_VELA, nombreConGramos, type TipoVela } from '@/domain/velas';
+import { MAXIMOS_VELA, MAX_CANTIDAD_VELAS, NOMBRES_TIPO_VELA, nombreConGramos, precioDesde, type TipoVela } from '@/domain/velas';
 import type { FotoGaleria } from '@/domain/catalogo';
-import { pedidos } from '@/services/pedidos';
+import { formatearPrecio, pedidos } from '@/services/pedidos';
 import Icono from '@/components/Icono.astro';
 import VistaVela from './VistaVela.astro';
 import '@/styles/armar.css';
@@ -31,9 +31,21 @@ const toppings = sitio.velas.toppings;
 /** Chica, mediana y grande se dibujan a distinta escala; un solo tamaño (Cupcake), a escala normal. */
 const escala = (i: number, total: number) => (total > 1 ? 0.85 + (0.3 * i) / (total - 1) : 1);
 
+/** Un tipo se puede elegir si tiene al menos un tamaño que sí se fabrica. */
+const sePide = (t: (typeof tipos)[number]) => t.presentaciones.some((p) => !p.proximamente);
+const tipoInicial = tipos.find(sePide) ?? tipos[0]!;
+/** "El tamaño Pequeña estará disponible pronto.", o nada si todos se hacen. */
+const pausadas = (presentaciones: (typeof tipos)[number]['presentaciones']) => {
+  const nombres = presentaciones.filter((p) => p.proximamente).map((p) => p.nombre);
+  if (nombres.length === 0) return undefined;
+  const lista = new Intl.ListFormat('es', { type: 'conjunction' }).format(nombres);
+  return nombres.length === 1 ? `El tamaño ${lista} estará disponible pronto.` : `Los tamaños ${lista} estarán disponibles pronto.`;
+};
+const precioTexto = (precio: number | null) => (precio === null ? 'A cotizar' : formatearPrecio(precio));
+
 const inicial = {
-  tipo: tipos[0]!,
-  presentacion: tipos[0]!.presentaciones[0]!,
+  tipo: tipoInicial,
+  presentacion: tipoInicial.presentaciones.find((p) => !p.proximamente) ?? tipoInicial.presentaciones[0]!,
   color: colores[0]!,
   veta: colores[1] ?? colores[0]!,
   aroma: aromas[0]!,
@@ -54,8 +66,8 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
     <div class="encabezado-seccion">
       <h2 id="arma-vela-titulo">Arma tu vela</h2>
       <p>
-        Elige el tipo, el tamaño y cómo quieres que se vea y huela. Te escribimos para confirmar el precio y tu vela está
-        lista en {sitio.velas.entrega}.
+        Elige el tipo, el tamaño y cómo quieres que se vea y huela; cada tamaño muestra su precio. Te escribimos para
+        confirmar tu pedido y tu vela está lista en {sitio.velas.entrega}.
       </p>
     </div>
 
@@ -65,11 +77,13 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
           <legend>Tipo de vela</legend>
           <div class="tipos-vela">
             {
-              tipos.map(({ tipo, presentaciones }, i) => {
+              tipos.map((t) => {
+                const { tipo, presentaciones } = t;
                 const foto = fotos[tipo][0];
+                const desde = precioDesde(presentaciones);
                 return (
                   <label class="tipo-vela">
-                    <input type="radio" name="tipo" value={tipo} checked={i === 0} />
+                    <input type="radio" name="tipo" value={tipo} checked={t === tipoInicial} disabled={!sePide(t)} />
                     <span class="tipo-vela__media" aria-hidden="true">
                       {foto ? (
                         <Picture
@@ -85,6 +99,11 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
                       )}
                     </span>
                     <span class="tipo-vela__nombre">{NOMBRES_TIPO_VELA[tipo]}</span>
+                    {!sePide(t) ? (
+                      <span class="tipo-vela__precio">Próximamente</span>
+                    ) : (
+                      desde !== null && <span class="tipo-vela__precio">Desde {formatearPrecio(desde)}</span>
+                    )}
                     <span class="tipo-vela__texto">
                       {sitio.velas.tipos[tipo].descripcion}
                       {presentaciones.length > 1 && <span class="visualmente-oculto"> ({presentaciones.map((p) => p.nombre).join(', ')})</span>}
@@ -101,33 +120,40 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
           <legend>Tu vela</legend>
 
           {
-            tipos.map(({ tipo, presentaciones }, i) => (
+            tipos.map((t) => {
+              const { tipo, presentaciones } = t;
+              return (
               <fieldset
                 class="arma__campo"
                 aria-describedby="error-presentacion"
                 data-presentaciones={tipo}
-                disabled={i !== 0}
-                hidden={i !== 0}
+                disabled={t !== tipoInicial}
+                hidden={t !== tipoInicial}
               >
                 <legend>{tipo === 'molde' ? 'Molde' : 'Tamaño'}</legend>
                 <div class="fichas">
                   {presentaciones.map((p, j) => (
-                    <label class="ficha">
+                    <label class="ficha ficha--precio">
                       <input
                         type="radio"
                         name="presentacion"
                         value={p.nombre}
-                        checked={i === 0 && j === 0}
+                        checked={p === inicial.presentacion}
+                        disabled={p.proximamente}
                         data-texto={nombreConGramos(p)}
+                        data-precio={p.precio ?? undefined}
                         data-marmoleable={p.marmoleable ? '' : undefined}
                         data-escala={escala(j, presentaciones.length).toFixed(2)}
                       />
                       <span>{nombreConGramos(p)}</span>
+                      <span class="ficha__precio">{p.proximamente ? 'Próximamente' : precioTexto(p.precio)}</span>
                     </label>
                   ))}
                 </div>
+                {pausadas(presentaciones) && <p class="arma__ayuda">{pausadas(presentaciones)}</p>}
               </fieldset>
-            ))
+              );
+            })
           }
           <p class="arma__error arma__error--suelto" id="error-presentacion" data-error="presentacion" hidden></p>
 
@@ -319,6 +345,16 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
               </div>
             </dl>
           </div>
+          <dl class="arma__total">
+            <div>
+              <dt>Precio por vela</dt>
+              <dd data-resumen="precio">{precioTexto(inicial.presentacion.precio)}</dd>
+            </div>
+            <div class="arma__total-final">
+              <dt>Total</dt>
+              <dd data-resumen="total">{precioTexto(inicial.presentacion.precio)}</dd>
+            </div>
+          </dl>
         </div>
 
         {
@@ -354,7 +390,7 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
     <div class="arma__listo" data-listo tabindex="-1" hidden>
       <span class="arma__listo-icono" aria-hidden="true"><Icono nombre="palomita" /></span>
       <h3 data-listo-titulo>¡Recibimos tu pedido!</h3>
-      <p data-listo-texto>Te escribimos pronto para confirmar el precio. Tu vela estará lista en {sitio.velas.entrega}.</p>
+      <p data-listo-texto>Te escribimos pronto para confirmar tu pedido. Tu vela estará lista en {sitio.velas.entrega}.</p>
       <div class="arma__listo-acciones">
         <a class="boton boton--whatsapp" href={pedidos.general('velas')} target="_blank" rel="noopener" data-listo-whatsapp>
           <Icono nombre="whatsapp" />
@@ -442,6 +478,22 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
     font-weight: 700;
   }
 
+  .tipo-vela__precio {
+    padding-inline: var(--espacio-1);
+    color: var(--arma-acento);
+    font-size: var(--texto-sm);
+    font-weight: 700;
+  }
+
+  .tipo-vela:has(input:disabled) {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .tipo-vela:has(input:disabled):hover {
+    border-color: var(--color-borde);
+  }
+
   .tipo-vela__texto {
     padding-inline: var(--espacio-1);
     color: var(--color-lavanda);
@@ -450,44 +502,6 @@ const hayFotos = tipos.some((t) => fotos[t.tipo].length > 0);
 
   .arma__error--suelto {
     margin-top: calc(var(--espacio-3) * -1);
-  }
-
-  /* ---------- Marmoleado ---------- */
-
-  .marmol__casilla {
-    display: flex;
-    align-items: center;
-    gap: var(--espacio-3);
-    min-height: 2.75rem;
-    font-size: var(--texto-sm);
-    cursor: pointer;
-  }
-
-  .marmol__casilla input {
-    flex: none;
-    width: 1.375rem;
-    height: 1.375rem;
-    margin: 0;
-    accent-color: var(--arma-acento);
-  }
-
-  .marmol__opcional {
-    color: var(--color-lavanda);
-    font-weight: 400;
-  }
-
-  .marmol [data-vetas] {
-    padding-left: var(--espacio-4);
-    border-left: 3px solid var(--color-cera-suave);
-  }
-
-  .ficha:has(input:disabled) {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .ficha:has(input:disabled):hover {
-    border-color: var(--color-borde);
   }
 
   /* ---------- Cantidad ---------- */

@@ -170,7 +170,8 @@ No tienen catálogo: quien visita arma su kit en `/kits-navidenos/` y la API gua
 
 | Opción | Dónde se cambia |
 | --- | --- |
-| Colores y aromas del jabón y de la vela | Pestaña **Kits** del panel de la API. Solo salen los marcados como disponibles, cada uno en la pieza que le marques (jabón, vela o ambos). Hay que volver a publicar el sitio. |
+| Colores del jabón y de la vela | Pestaña **Colores** del panel de la API: una lista para el jabón y otra para la vela (la vela del kit y las velas individuales). El mismo nombre puede estar en las dos con otro tono. Solo salen los disponibles. Hay que volver a publicar el sitio. |
+| Aromas del jabón y de la vela | Pestaña **Kits** del panel de la API. Solo salen los marcados como disponibles, cada uno en la pieza que le marques (jabón, vela o ambos). Hay que volver a publicar el sitio. |
 | Formas del jabón y toppings de la vela | `sitio.kits.jabon.formas` y `TOPPINGS` en `src/config/sitio.ts`, porque cada uno tiene su dibujo en la vista previa. Los toppings son los mismos para las velas individuales. |
 | Fotos de "Así quedan" | Pestaña **Kits** del panel (fotos de categoría `kits`). Sin fotos, la sección no sale. |
 
@@ -203,7 +204,8 @@ Velas individuales en `/velas/`. Quien visita elige **tipo** (en recipiente, de 
 | Opción | Dónde se cambia |
 | --- | --- |
 | Tamaños y moldes, sus gramos y si se pueden marmolear | Pestaña **Velas** del panel. Solo salen los disponibles; los gramos se muestran cuando los captures ("Mediana · 180 g"). Un tipo sin tamaños disponibles no aparece. |
-| Colores y aromas | Los de la pestaña **Kits** marcados para la **vela**. |
+| Colores | Los de **vela** de la pestaña **Colores** (también para el marmoleado). |
+| Aromas | Los de la pestaña **Kits** marcados para la **vela**. |
 | Toppings | `TOPPINGS` en `src/config/sitio.ts` (los mismos de los kits). |
 | Fotos de cada tipo | Pestaña **Velas** del panel (categorías `velas-recipiente`, `velas-molde`, `velas-jicara`). Ilustran la tarjeta del tipo, la vista previa y la sección "Así se ven". |
 | Textos de cada tipo, tiempo de entrega y preguntas | `sitio.velas` y `preguntas.velas` en `src/config/sitio.ts`. |

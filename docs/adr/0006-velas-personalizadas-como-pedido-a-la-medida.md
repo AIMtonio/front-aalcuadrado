@@ -12,7 +12,7 @@ Además de los kits, el taller vende velas individuales personalizadas de tres t
 - Una página propia, `/velas/`, con su pestaña en el encabezado y su tarjeta en la portada ([0005](0005-una-pagina-por-linea-de-producto.md)).
 - Mismo modelo que los kits ([0004](0004-kits-como-pedido-a-la-medida.md)): formulario **Arma tu vela** con vista previa en SVG, reglas en `src/domain/velas.ts` copiadas del DTO del back y respaldo por WhatsApp (`CanalPedidos.vela()`).
 - **Tamaños y moldes** salen del panel al compilar (`/api/velas/presentaciones`, solo los disponibles). Los gramos se muestran solo si existen ("Mediana · 180 g"). Sin el módulo en la API se usan los de `sitio.velas`.
-- **Colores y aromas** son los de los kits marcados "para la vela"; **toppings**, la misma lista fija de los kits (`TOPPINGS` en `sitio.ts`).
+- **Colores** son los de vela (pestaña Colores, los mismos de la vela del kit; desde que el back separó los colores de jabón y de vela) y **aromas**, los de los kits marcados "para la vela"; **toppings**, la misma lista fija de los kits (`TOPPINGS` en `sitio.ts`).
 - El marmoleado se ofrece solo cuando la presentación es `marmoleable`; el front además lo bloquea en jícara aunque el panel dijera otra cosa.
 - Las fotos de cada tipo ilustran la tarjeta del tipo, la vista previa y la sección "Así se ven"; se abren en el visor con `#velas-<tipo>/<n>`.
 - Un solo cliente HTTP para los dos encargos: `ClienteEncargos` (`'kit'` → `/api/pedidos`, `'vela'` → `/api/velas/pedidos`).

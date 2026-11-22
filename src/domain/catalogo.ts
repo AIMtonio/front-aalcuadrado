@@ -159,16 +159,27 @@ export const FotoApiSchema = z.object({
   orden: z.number(),
 });
 
-/** Un color o aroma para armar kits (pestaña Kits del panel). Solo llegan los disponibles. */
-const OpcionKitApiSchema = z.object({
+/** Un aroma para armar kits (pestaña Kits del panel). Solo llegan los disponibles. */
+const AromaKitApiSchema = z.object({
   nombre: z.string().min(1),
   enJabon: z.boolean(),
   enVela: z.boolean(),
 });
 
+/**
+ * Un color de jabón o de vela (pestaña Colores del panel): dos listas separadas, y el mismo
+ * nombre puede estar en las dos con otro tono. Los de vela también son los de las velas
+ * individuales. Solo llegan los disponibles.
+ */
+const ColorKitApiSchema = z.object({
+  pieza: z.enum(['jabon', 'vela']),
+  nombre: z.string().min(1),
+  hex: ColorSchema.shape.hex,
+});
+
 export const KitsApiSchema = z.object({
-  colores: z.array(OpcionKitApiSchema.extend({ hex: ColorSchema.shape.hex })),
-  aromas: z.array(OpcionKitApiSchema),
+  colores: z.array(ColorKitApiSchema),
+  aromas: z.array(AromaKitApiSchema),
 });
 
 /** Un tamaño o molde de vela individual (pestaña Velas del panel). Solo llegan los disponibles. */
@@ -192,7 +203,7 @@ export const CatalogoApiJsonSchema = z.object({
   /** En el orden del panel. Falta en manifiestos de antes de las categorías. */
   categorias: z.array(CategoriaApiSchema).default([]),
   fotos: z.array(FotoApiSchema),
-  /** `null` si la API todavía no tiene colores y aromas de kits (o el manifiesto es de antes). */
+  /** `null` si la API todavía no tiene colores ni aromas de kits (o el manifiesto es de antes). */
   kits: KitsApiSchema.nullable().default(null),
   /** `null` si la API todavía no tiene el módulo de velas (o el manifiesto es de antes). */
   velas: VelasApiSchema.nullable().default(null),

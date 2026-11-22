@@ -212,7 +212,7 @@ flowchart LR
   cms["guardar en Pages CMS"]
   hook["botón Publicar sitio<br/>en el panel"]
 
-  sync["api:sincronizar<br/>login JWT · GET productos,<br/>categorías, imágenes,<br/>colores y aromas de kit"]
+  sync["api:sincronizar<br/>login JWT · GET productos,<br/>categorías, imágenes,<br/>colores de jabón y vela,<br/>aromas de kit"]
   manifiesto[("catalogo-api.json<br/>+ fotos en src/content/fotos/api/")]
   validar["productos:validar<br/>esquemas Zod"]
   astro["astro build<br/>HTML · AVIF/WebP · srcset<br/>JSON-LD · sitemap"]
@@ -234,7 +234,7 @@ flowchart LR
   class falla error
 ```
 
-- **Tolerante a versiones de la API.** Si una ruta nueva todavía no existe (responde `404`, por ejemplo `/api/categorias`, `/api/kits/colores` o `/api/velas/presentaciones`), la sincronización sigue sin esos datos y el sitio usa sus valores de respaldo.
+- **Tolerante a versiones de la API.** Si una ruta nueva todavía no existe (responde `404`, por ejemplo `/api/categorias`, `/api/colores` o `/api/velas/presentaciones`), la sincronización sigue sin esos datos y el sitio usa sus valores de respaldo.
 - **Atómico.** Vercel solo cambia de versión si el build completo termina bien; nunca se publica un sitio a medias.
 - **Sin API** (`API_URL` vacío), el sitio se arma con los JSON del repositorio y los pedidos de kits y velas van por WhatsApp.
 

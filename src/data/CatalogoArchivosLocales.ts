@@ -277,8 +277,9 @@ function construirGaleria(): FotoGaleria<Imagen>[] {
 }
 
 /**
- * Colores y aromas de los kits. Cada lista (colores del jabón, aromas de la vela…)
- * sale del panel si tiene al menos una opción disponible; si no, de `sitio.kits`,
+ * Colores y aromas de los kits. Los colores vienen en una lista por pieza (jabón o
+ * vela); los aromas, marcados para una pieza o ambas. Cada lista (colores del jabón,
+ * aromas de la vela…) sale del panel si tiene al menos una opción disponible; si no, de `sitio.kits`,
  * para que el formulario nunca quede sin opciones.
  */
 function construirOpcionesKit(): OpcionesKit {
@@ -292,7 +293,7 @@ function construirOpcionesKit(): OpcionesKit {
     const en = clave === 'jabon' ? 'enJabon' : 'enVela';
     return {
       colores: elegir(
-        (kits?.colores ?? []).filter((c) => c[en]).map(({ nombre, hex }) => ({ nombre, hex })),
+        (kits?.colores ?? []).filter((c) => c.pieza === clave).map(({ nombre, hex }) => ({ nombre, hex })),
         sitio.kits[clave].colores,
         `colores para ${nombre}`,
       ),
@@ -309,7 +310,7 @@ function construirOpcionesKit(): OpcionesKit {
 /**
  * Tamaños y moldes de las velas: los disponibles del panel o, si la API todavía no
  * tiene el módulo de velas (o no tiene ninguno disponible), los de `sitio.velas`.
- * Los colores y aromas son los de la vela de los kits.
+ * Los colores son los de vela del panel y los aromas, los de la vela de los kits.
  */
 /** "Pequeña" = "pequena" = "PEQUEÑA": el panel puede escribirlo con o sin acentos. */
 const normalizarNombre = (nombre: string) =>

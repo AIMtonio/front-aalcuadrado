@@ -41,7 +41,7 @@ const { access_token } = await (
 const conToken = { headers: { Authorization: `Bearer ${access_token}` } };
 
 // Una API de antes de un módulo responde 404 en su ruta (por ejemplo /api/categorias,
-// /api/kits/colores o /api/velas/presentaciones): se sigue sin esos datos.
+// /api/colores o /api/velas/presentaciones): se sigue sin esos datos.
 async function pedirOpcional(ruta) {
   const respuesta = await fetch(new URL(ruta, API_URL), conToken);
   if (respuesta.status === 404) return null;
@@ -49,11 +49,24 @@ async function pedirOpcional(ruta) {
   return respuesta.json();
 }
 
+// Colores de jabón y de vela, en listas separadas (`pieza`). Una API de antes de separarlos
+// solo tiene /api/kits/colores, con `enJabon` / `enVela`: cada color pasa a la lista de cada
+// pieza marcada. Ya vienen en el orden del panel.
+async function pedirColores() {
+  const colores = await pedirOpcional('/api/colores');
+  if (colores) return colores;
+  const deKits = await pedirOpcional('/api/kits/colores');
+  return deKits?.flatMap(({ enJabon, enVela, ...color }) => [
+    ...(enJabon ? [{ ...color, pieza: 'jabon' }] : []),
+    ...(enVela ? [{ ...color, pieza: 'vela' }] : []),
+  ]) ?? null;
+}
+
 const [productosApi, categoriasApi, imagenes, coloresKit, aromasKit, presentacionesVela] = await Promise.all([
   pedir('/api/productos', conToken).then((r) => r.json()),
   pedirOpcional('/api/categorias').then((c) => c ?? []),
   pedir('/api/imagenes', conToken).then((r) => r.json()),
-  pedirOpcional('/api/kits/colores'),
+  pedirColores(),
   pedirOpcional('/api/kits/aromas'),
   pedirOpcional('/api/velas/presentaciones'),
 ]);
@@ -105,12 +118,7 @@ const kits =
     ? {
         colores: (coloresKit ?? [])
           .filter((c) => c.disponible)
-          .map(({ nombre, hex, enJabon, enVela }) => ({
-            nombre,
-            hex,
-            enJabon,
-            enVela,
-          })),
+          .map(({ pieza, nombre, hex }) => ({ pieza, nombre, hex })),
         aromas: (aromasKit ?? [])
           .filter((a) => a.disponible)
           .map(({ nombre, enJabon, enVela }) => ({ nombre, enJabon, enVela })),
